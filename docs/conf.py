@@ -1,12 +1,13 @@
 import os
 import sys
-
-sys.path.insert(0, os.path.abspath(".."))
+from typing import Any
 
 import citsigol
 
+sys.path.insert(0, os.path.abspath(".."))
 
-#!/usr/bin/env python
+
+#  !/usr/bin/env python
 #
 # citsigol documentation build configuration file, created by
 # sphinx-quickstart on Fri Jun  9 13:47:02 2017.
@@ -108,7 +109,7 @@ htmlhelp_basename = "citsigoldoc"
 
 # -- Options for LaTeX output ------------------------------------------
 
-latex_elements = {
+latex_elements: dict[Any, Any] = {
     # The paper size ('letterpaper' or 'a4paper').
     #
     # 'papersize': 'letterpaper',
