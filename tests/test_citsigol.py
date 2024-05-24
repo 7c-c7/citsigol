@@ -5,9 +5,6 @@
 import pytest
 
 
-from citsigol import citsigol
-
-
 @pytest.fixture
 def response():
     """Sample pytest fixture.
