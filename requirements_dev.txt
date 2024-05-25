@@ -7,7 +7,6 @@ twine
 ruff
 numpy
 matplotlib
-mpld3
 pre-commit
 
 pytest
