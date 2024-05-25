@@ -5,8 +5,8 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 
-import citsigol.logistic as logistic
 import citsigol
+import citsigol.logistic as logistic
 
 
 def main() -> None:
@@ -25,7 +25,9 @@ def main() -> None:
         x,
         r,
     ) in zip(x_values, r_values):
-        plt.plot(r * np.ones_like(x), x, ".", markersize=0.3, alpha=0.4, color="aquamarine")
+        plt.plot(
+            r * np.ones_like(x), x, ".", markersize=0.3, alpha=0.4, color="aquamarine"
+        )
     print("\nDone!")
 
     # plot the stable limit cycles of the logistic map vs the parameter.
@@ -37,7 +39,9 @@ def main() -> None:
     plt.xlabel("r")
     plt.ylabel("x")
     for x, r in zip(x_values, r_values):
-        plt.plot(r * np.ones_like(x), x, ".", markersize=0.3, alpha=0.4, color="aquamarine")
+        plt.plot(
+            r * np.ones_like(x), x, ".", markersize=0.3, alpha=0.4, color="aquamarine"
+        )
 
     # plot the citsigol map with a few different r and target values
     print("Plotting the citsigol map with a few different r and target values...")

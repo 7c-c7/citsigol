@@ -8,7 +8,6 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.polynomial import Polynomial
 
-
 CYCLE_REPETITION_ATOL = 1e-8
 
 
@@ -282,7 +281,7 @@ def fixed_points(r: float, period: int = 1) -> np.ndarray:
     cycles = [
         logistic.sequence(point, period) for point in cycle_points
     ]  # cycles of length period starting at each root
-    unique_cycles = []
+    unique_cycles: list[np.ndarray] = []
     for i, cycle in enumerate(cycles):
         # get the indices where the first value recurs in this cycle
         repeats = np.where(np.isclose(cycle, cycle[0], atol=CYCLE_REPETITION_ATOL))[0][
