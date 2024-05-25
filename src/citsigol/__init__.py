@@ -111,9 +111,7 @@ class Citsigol:
         """
         sequence = [x_0]
         for i in range(n):
-            if np.size(
-                x_n := self(np.array(sequence[-1:]), compass(sequence[-1], i))
-            ):
+            if np.size(x_n := self(np.array(sequence[-1:]), compass(sequence[-1], i))):
                 sequence.extend(x_n)
                 continue
             break

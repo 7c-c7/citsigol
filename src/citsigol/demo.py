@@ -13,33 +13,31 @@ def main() -> None:
     """Demo script for citsigol."""
     print("Welcome to citsigol!")
 
-    """
     # plot the classic bifurcation diagram of the logistic map
     print("Plotting the classic bifurcation diagram of the logistic map...")
-    r_values = np.linspace(3.2, 4, 801)
+    r_values = np.linspace(3.544, 4, 12001)
     x_values = logistic.bifurcation_diagram(
-        r_values, n_skip=100, n_steps=100, track_progress=True, tol=1e-5
+        r_values, n_skip=100, n_steps=2000, track_progress=True, tol=1e-6
     )
     plt.figure(figsize=(21, 11))
+    plt.style.use("dark_background")
     for (
         x,
         r,
     ) in zip(x_values, r_values):
-        plt.plot(r * np.ones_like(x), x, "k.", markersize=0.5)
-    print("Done!")
-    """
+        plt.plot(r * np.ones_like(x), x, ".", markersize=0.3, alpha=0.4, color="aquamarine")
+    print("\nDone!")
 
     # plot the stable limit cycles of the logistic map vs the parameter.
-    r_values = np.linspace(0, 4, 8001)
+    r_values = np.linspace(2, 4, 10001)
     max_period = 4
-    x_values = [logistic.fixed_points(r, max_period) for r in r_values] + [logistic.fixed_points(r, 3) for r in r_values]
-    r_values = np.array(list(np.linspace(0, 4, 8001)) * 2)
-    plt.figure(figsize=(21, 11))
-    plt.title(f"Stable Limit Cycles of the Logistic Map up to Period {max_period}")
+    x_values = [logistic.fixed_points(r, max_period) for r in r_values]
+    """plt.figure(figsize=(21, 11))
+    plt.title(f"Stable Limit Cycles of the Logistic Map up to Period {max_period}")"""
     plt.xlabel("r")
     plt.ylabel("x")
     for x, r in zip(x_values, r_values):
-        plt.plot(r * np.ones_like(x), x, "k.", markersize=0.5)
+        plt.plot(r * np.ones_like(x), x, ".", markersize=0.3, alpha=0.4, color="aquamarine")
 
     # plot the citsigol map with a few different r and target values
     print("Plotting the citsigol map with a few different r and target values...")

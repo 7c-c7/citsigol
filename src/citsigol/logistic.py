@@ -4,7 +4,6 @@ Logistic map and basic related functions.
 
 from copy import copy
 from dataclasses import dataclass
-from numbers import Number
 
 import numpy as np
 from numpy.polynomial import Polynomial
@@ -31,7 +30,7 @@ class LogisticMap:
         x_0: float,
         max_period: int = 1,
         tol: float = 1e-6,
-        max_steps: int = 1_000_000,
+        max_steps: int = 1_000,
         return_unconverged: bool = False,
     ) -> float | np.ndarray | None:
         """
@@ -54,25 +53,19 @@ class LogisticMap:
         -------
         np.ndarray
             Converged value of the logistic map,
-            Or None if convergence did not occur and return_unconverged is False
+            Or empty array if convergence did not occur and return_unconverged is False
             Or unconverged values of length max_period if return_unconverged is True.
         """
-        r: float = self.r
+        max_period = min(max_steps, max_period)
         x_history = np.full(max_period, x_0)
-        x = copy(x_0)
+        x_new = x_0
         for _ in range(max_steps):
-            x_new = logistic_map(x, r)
-            if np.any(
-                [np.allclose(x_new, x_prev, atol=tol, rtol=0) for x_prev in x_history]
-            ):
+            x_new = logistic_map(x_new, self.r)
+            if np.any(np.isclose(x_history, x_new, atol=tol, rtol=0)):
                 period_length = max_period - np.max(
                     np.where(np.isclose(x_history, x_new, atol=tol, rtol=0))[0]
                 )
-                if period_length == 1 and isinstance(x_0, Number):
-                    return x_new
-                else:
-                    return np.array(x_history[-period_length:])
-            x = copy(x_new)
+                return np.array(x_history[-period_length:])
             x_history = np.roll(x_history, -1)
             x_history[-1] = x_new
         if return_unconverged:
