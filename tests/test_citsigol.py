@@ -1,21 +1,39 @@
-#!/usr/bin/env python
-
 """Tests for `citsigol` package."""
 
 import pytest
 
-
-@pytest.fixture
-def response():
-    """Sample pytest fixture.
-
-    See more at: http://doc.pytest.org/en/latest/fixture.html
-    """
-    # import requests
-    # return requests.get('https://github.com/audreyr/cookiecutter-pypackage')
+import citsigol
 
 
-def test_content(response):
-    """Sample pytest test function with the pytest fixture as an argument."""
-    # from bs4 import BeautifulSoup
-    # assert 'GitHub' in BeautifulSoup(response.content).title.string
+def test_citsigol_map():
+    """Test the citsigol function call."""
+    citsigol_map = citsigol.Citsigol(1.0)
+    assert citsigol_map(0.125) == pytest.approx(
+        [
+            0.5 * (1 - (1 - 0.125 * 4.0 / 1) ** 0.5),
+            0.5 * (1 + (1 - 0.125 * 4.0 / 1) ** 0.5),
+        ]
+    )
+    assert citsigol_map(0.125, branch=1) == pytest.approx(
+        [0.5 * (1 + (1 - 0.125 * 4.0 / 1) ** 0.5)]
+    )
+    assert citsigol_map(0.125, branch=-1) == pytest.approx(
+        [0.5 * (1 - (1 - 0.125 * 4.0 / 1) ** 0.5)]
+    )
+    assert citsigol_map([0.125, 0.25]) == pytest.approx(
+        [
+            0.5 * (1 - (1 - 0.125 * 4.0 / 1) ** 0.5),
+            0.5 * (1 + (1 - 0.125 * 4.0 / 1) ** 0.5),
+            0.5 * (1 - (1 - 0.25 * 4.0 / 1) ** 0.5),
+            0.5 * (1 + (1 - 0.25 * 4.0 / 1) ** 0.5),
+        ]
+    )
+    assert not citsigol_map(0.5)  # empty list since this is out of bounds
+
+
+def test_citsigol_sequence():
+    """Test the citsigol sequence function."""
+    citsigol_map = citsigol.Citsigol(1.0)
+    assert citsigol_map.sequence(0.125, 2)[-1] == citsigol_map(
+        citsigol_map.sequence(0.125, 1)[-1]
+    )

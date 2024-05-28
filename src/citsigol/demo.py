@@ -13,8 +13,8 @@ def main() -> None:
     """Demo script for citsigol."""
     print("Welcome to citsigol!")
 
-    r_resolution = 24001
-    n_steps = 4000
+    r_resolution = 2001
+    n_steps = 1000
     n_skip = 400
     r_limits = (2, 4)
     # plot the classic bifurcation diagram of the logistic map
@@ -49,26 +49,22 @@ def main() -> None:
 
     # plot the citsigol map with a few different r and target values
     print("Plotting the citsigol map with a few different r and target values...")
-    n_iterations = 50
+    n_iterations = 10
     r_values = [0.5, 1.5, 2.5, math.pi, 3.5, 3.8]
-    target_values = [0.25, 0.6, 1 / math.pi]
-    exes = []
-    for target in target_values:
-        plt.figure(figsize=(21, 11))
-        plt.title("Citsigol Map with Compass")
-        plt.xlabel("n")
-        plt.ylabel("x_n")
-        for r in r_values:
-            print(f"r={r:.5f}, target={target:.5f}")
-            compass = citsigol.Seeker(target)
-            steps = list(range(n_iterations + 1))
-            exes = citsigol.Citsigol(r).sequence(max(0.1, r / 5), n_iterations, compass)
-            plt.plot(steps[: len(exes)], exes, label=f"r={r}")
-        plt.legend()
-        plt.title("Citsigol Map with Compass")
-        plt.plot([0, len(exes)], [target, target], "k--", label="target")
-        plt.xlabel("n")
-        plt.ylabel("x_n")
+    plt.figure(figsize=(21, 11))
+    plt.title("Citsigol Map with Compass")
+    plt.xlabel("n")
+    plt.ylabel("x_n")
+    for r in r_values:
+        print(f"r={r:.5f}")
+        exes = citsigol.Citsigol(r).sequence(max(0.1, r / 5), n_iterations)
+        steps = [step for i, x in enumerate(exes) for step in len(x) * [i]]
+        plot_exes = [x for xs in exes for x in xs]
+        plt.plot(steps, plot_exes, ".", label=f"r={r}")
+    plt.legend()
+    plt.title("Citsigol Map with Compass")
+    plt.xlabel("n")
+    plt.ylabel("x_n")
     plt.show()
 
 
