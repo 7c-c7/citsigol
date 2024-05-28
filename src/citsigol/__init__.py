@@ -6,7 +6,7 @@ __version__ = "0.1.0"
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Iterable
 
 import numpy as np
 
@@ -20,13 +20,13 @@ class Compass(ABC):
     """
 
     @abstractmethod
-    def __call__(self, x: float, n: int) -> int:
+    def __call__(self, x: float | list[float], n: int) -> list[int]:
         """
         Choose a branch of the citsigol map to follow.
 
         Parameters
         ----------
-        x : float
+        x : float | list[float]
             Current value of x.
         n : int
             Number of steps passed.
@@ -49,17 +49,17 @@ class Citsigol:
 
     def __call__(
         self,
-        x: np.ndarray,
-        branch: int = 0,
-    ) -> np.ndarray:
+        x: Iterable[float] | float,
+        branch: int | Iterable[int] = 0,
+    ) -> list[float]:
         """
         Evaluate the citsigol map at a point.
 
         Parameters
         ----------
-        x : float or np.ndarray
+        x : list[float] | float
             Point(s) at which to evaluate the citsigol map.
-        branch : int, float, np.ndarray, or Callable, optional
+        branch : int or Iterable, optional
             Branch of the citsigol map to keep
             Positive value will keep the higher branch
             Negative value will keep the lower branch
@@ -67,29 +67,36 @@ class Citsigol:
 
         Returns
         -------
-        np.ndarray
+        list[float]
             Value(s) of the citsigol map at x.
         """
-        if branch not in (-1, 0, 1, None):
-            raise ValueError("branch must be -1, 0, 1, or None")
-        if len(x.shape) != 1:
-            raise ValueError("x must be a 1D array")
-        d_squared = 1 - 4 * x / self.r
-        if d_squared < 0:
-            return np.array([])
-        distance = np.sqrt(d_squared)
-        branches = [0.5 * (1 - distance), 0.5 * (1 + distance)]
 
-        def _index(branch_choice: int) -> int:
-            return round((1 + branch_choice) / 2)
+        def _branch_indices(chosen_branch: int) -> list[int]:
+            return [round((chosen_branch + 1) / 2)] if chosen_branch else [0, 1]
 
-        return np.concatenate(
-            np.array([branches[_index(branch)]])
-            if branch in (-1, 1)
-            else np.array([branches[0], branches[1]])
+        xes = x if isinstance(x, Iterable) else [x]
+        discriminants = [1 - 4 * x_val / self.r for x_val in xes]
+        x_priorses = [
+            (0.5 * (1 - discriminant**0.5), 0.5 * (1 + discriminant**0.5))
+            if discriminant >= 0
+            else tuple([])
+            for discriminant in discriminants
+        ]
+        branches = (
+            branch if isinstance(branch, Iterable) else len(x_priorses) * [branch]
         )
+        if not all(branch in (-1, 0, 1, None) for branch in branches):
+            raise ValueError("branch must be -1, 0, 1, or None")
+        return [
+            x_val
+            for branch, possible_xes in zip(branches, x_priorses)
+            for i, x_val in enumerate(possible_xes)
+            if branch in (0, None) or i in _branch_indices(branch)
+        ]
 
-    def sequence(self, x_0: float, n: int, compass: Compass) -> list[float]:
+    def sequence(
+        self, x_0: float, n: int, compass: Compass | None = None
+    ) -> list[list[float]]:
         """
         Iterate the citsigol map n times.
 
@@ -103,16 +110,17 @@ class Citsigol:
             Branch of the citsigol map to keep, given the current value of x and the number of steps passed.
             Positive return value will keep the higher branch.
             Negative return value will keep the lower branch.
+            if None, keep both branches
 
         Returns
         -------
         list[float]
             Values of the citsigol map over n iterations, including the starting value. (length is n+1)
         """
-        sequence = [x_0]
+        sequence = [[x_0]]
         for i in range(n):
-            if np.size(x_n := self(np.array(sequence[-1:]), compass(sequence[-1], i))):
-                sequence.extend(x_n)
+            if x_n := self(sequence[-1], compass(sequence[-1], i) if compass else 0):
+                sequence.append(x_n)
                 continue
             break
         return sequence
@@ -129,7 +137,7 @@ class Seeker(Compass):
     def __init__(self, target: float):
         self.target = target
 
-    def __call__(self, x: float, n: int) -> int:
+    def __call__(self, x: float | list[float], n: int) -> list[int]:
         """
         Choose a branch of the citsigol map to follow.
 
@@ -145,7 +153,10 @@ class Seeker(Compass):
         int
             +1 to follow the higher branch, -1 to follow the lower branch.
         """
-        return np.sign(self.target - x) or 1  # default to higher branch if x == target
+        return [
+            int(np.sign(self.target - x_value) or 1)
+            for x_value in (x if isinstance(x, list) else [x])
+        ]  # default to higher branch if x == target
 
 
 class Quest(Compass):
@@ -158,7 +169,7 @@ class Quest(Compass):
             directions.__getitem__ if isinstance(directions, list) else directions
         )
 
-    def __call__(self, x: float, n: int) -> int:
+    def __call__(self, x: float | list[float], n: int) -> list[int]:
         """
         Choose a branch of the citsigol map to follow.
 
@@ -174,4 +185,4 @@ class Quest(Compass):
         int
             +1 to follow the higher branch, -1 to follow the lower branch.
         """
-        return self.directions(n)
+        return (len(x) if isinstance(x, list) else 1) * [self.directions(n)]
