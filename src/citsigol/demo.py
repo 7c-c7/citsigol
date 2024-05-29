@@ -13,7 +13,7 @@ def main() -> None:
     """Demo script for citsigol."""
     print("Welcome to citsigol!")
 
-    r_resolution = 501
+    r_resolution = 1001
     n_points = 1100
     n_skip = 1000
     r_limits = (3.544, 4)

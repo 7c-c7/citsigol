@@ -37,8 +37,6 @@ class BifurcationDiagram:
         ]
 
     def _on_lims_change(self, _: matplotlib.backend_bases.Event) -> None:
-        for line in self.ax.lines:
-            line.remove()
         plt.pause(0.1)
         self.figure.canvas.draw()
         self.x_bounds = self.ax.get_xlim()
