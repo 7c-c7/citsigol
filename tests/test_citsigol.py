@@ -33,7 +33,7 @@ def test_citsigol_map():
 
 def test_citsigol_sequence():
     """Test the citsigol sequence function."""
-    citsigol_map = citsigol.CitsigolMap(1.0)
-    assert citsigol_map.sequence([0.125], 2, keep_last=1)[0] == citsigol_map(
-        citsigol_map.sequence([0.125], 1, keep_last=1)[0]
-    )
+    citsigol_map = citsigol.CitsigolMap(3.8)
+    sequence = list(citsigol_map.sequence([0.125], 10))
+    for i, x_n in enumerate(sequence[1:]):
+        assert x_n == citsigol_map(sequence[i])

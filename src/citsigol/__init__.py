@@ -5,7 +5,7 @@ __email__ = "dustinsummy@gmail.com"
 __version__ = "0.1.0"
 
 from abc import ABC, abstractmethod
-from typing import Callable, Iterable
+from typing import Callable, Generator, Iterable
 
 import numpy as np
 
@@ -20,39 +20,28 @@ class Map:
     def __call__(self, x: list[float]) -> list[float]:
         return self._next_value(x)
 
-    def sequence(
-        self, x_0: list[float], n: int, keep_last: int = 0
-    ) -> list[list[float]]:
+    def sequence(self, x_0: list[float], n: int) -> Generator[list[float], None, None]:
         """
-        Iterate the Map n times.
+        Iterate the Map at most n times.
 
         Parameters
         ----------
-        x_0 : float
+        x_0 : list[float]
             Initial value of the citsigol map.
         n : int
             Number of iterations.
-        keep_last : int, optional
-            Number of last values to keep, by default 0 (keeps all)
 
-        Returns
+        Yields
         -------
-        list[list[float]]
-            List of all values of the Map after each of the first n iterations, including the starting value.
-            (length is n+1)
+        list[float]
+            Values of the Map after each of the first n iterations, starting with x_0 (length is n+1).
         """
-        sequence = (
-            [x_0] if not keep_last or keep_last > n else []
-        )  # keep the first value if we're keeping all values
-        keep_last = keep_last if keep_last is not None else n
-        x_n = x_0
-        for i in range(n):
+        x_n = [x for x in x_0]
+        for _ in range(n):
             if x_n := self(x_n):
-                if i >= n - keep_last:
-                    sequence.append(x_n)
+                yield x_n
                 continue
             break
-        return sequence
 
     def iterate_until_convergence(
         self,
@@ -102,7 +91,11 @@ class Map:
                 it returns an empty array.
         """
         max_period = min(max_steps - skip_steps, max_period)
-        x_new = self.sequence([x_0], skip_steps, keep_last=1)[0]
+        x_new = next(
+            x
+            for i, x in enumerate(self.sequence([x_0], skip_steps), 1)
+            if i == skip_steps
+        )
         x_history = [x_new]
         for _ in range(max_steps - skip_steps):
             x_new = self(x_new)
