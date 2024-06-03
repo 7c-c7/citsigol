@@ -31,6 +31,19 @@ Features
 * Bifurcation diagrams include dynamic zooming and generally retain plot quality up to machine precision limitations.
 * Sequence generators
 
+Try it out!
+-----------
+
+Clone the repo and install it from source into your system's python installation:
+
+::
+
+    git clone https://github.com/7c-c7/citsigol.git
+    pip install ./citsigol
+    python ./citsigol/src/citsigol/demo.py
+
+If you have any issues, please report them! This is a learning effort, and we are happy to get feedback and improve the package.
+
 Development
 -----------
 Setup should be quite standard. The following should be sufficient to get started:
