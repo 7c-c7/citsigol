@@ -2,16 +2,19 @@
 citsigol
 ========
 
+.. image:: https://lh3.googleusercontent.com/d/1pgT04PvnFX8Mz53zffG_CGOcUdUhamEP
+Imagine this... But *backwards!*
 
-.. image:: https://img.shields.io/pypi/v/citsigol.svg
-        :target: https://pypi.python.org/pypi/citsigol
-
-.. image:: https://img.shields.io/travis/7c-c7/citsigol.svg
-        :target: https://travis-ci.com/7c-c7/citsigol
-
-.. image:: https://readthedocs.org/projects/citsigol/badge/?version=latest
-        :target: https://citsigol.readthedocs.io/en/latest/?version=latest
-        :alt: Documentation Status
+..
+    .. image:: https://img.shields.io/pypi/v/citsigol.svg
+            :target: https://pypi.python.org/pypi/citsigol
+    
+    .. image:: https://img.shields.io/travis/7c-c7/citsigol.svg
+            :target: https://travis-ci.com/7c-c7/citsigol
+    
+    .. image:: https://readthedocs.org/projects/citsigol/badge/?version=latest
+            :target: https://citsigol.readthedocs.io/en/latest/?version=latest
+            :alt: Documentation Status
 
 
 
@@ -20,7 +23,9 @@ Citsigol is an investigatory package providing utilities for investigation and m
 
 
 * Free software: MIT license
-* Documentation: (Will eventually be at) https://citsigol.readthedocs.io.
+
+..
+    * Documentation: (Will eventually be at) https://citsigol.readthedocs.io.
 
 
 Features
