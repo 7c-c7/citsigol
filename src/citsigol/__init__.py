@@ -20,7 +20,9 @@ class Map:
     def __call__(self, x: list[float]) -> list[float]:
         return self._next_value(x)
 
-    def sequence(self, x_0: list[float], n: int) -> Generator[list[float], None, None]:
+    def sequence(
+        self, x_0: list[float], n: int | None = None
+    ) -> Generator[list[float], None, None]:
         """
         Iterate the Map at most n times.
 
@@ -28,8 +30,8 @@ class Map:
         ----------
         x_0 : list[float]
             Initial value of the citsigol map.
-        n : int
-            Number of iterations.
+        n : int | None
+            Number of iterations. If None, iterate indefinitely.
 
         Yields
         -------
@@ -37,11 +39,17 @@ class Map:
             Values of the Map after each of the first n iterations, starting with x_0 (length is n+1).
         """
         x_n = [x for x in x_0]
-        for _ in range(n):
+        while n is None:
             if x_n := self(x_n):
                 yield x_n
                 continue
             break
+        else:
+            for _ in range(n):
+                if x_n := self(x_n):
+                    yield x_n
+                    continue
+                break
 
     def iterate_until_convergence(
         self,

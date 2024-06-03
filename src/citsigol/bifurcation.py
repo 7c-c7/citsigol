@@ -1,13 +1,63 @@
+from typing import Iterator
+
 import matplotlib.backend_bases
 import numpy as np
 from matplotlib import pyplot as plt
 
 from citsigol import Map
 
+PLOT_DRAW_PAUSE_TIME = (
+    1e-8  # pausing is required when drawing the plot to avoid skipping the drawing.
+)
+
 plt.style.use("dark_background")
 
 
 class BifurcationDiagram:
+    """
+    A class used to represent a Bifurcation Diagram.
+
+    ...
+
+    Attributes
+    ----------
+    map_class : type[Map]
+        a class that represents the map used in the bifurcation diagram
+    initial_values : list[float]
+        a list of initial values for the map sequences (default is [0.5])
+    steps_to_skip : int
+        the number of steps to skip in each sequence before plotting (default is 100)
+    n_points : int
+        the number of points to plot in each sequence (default is 100)
+    x_bounds : tuple[float, float]
+        the bounds for the x-axis (default is (0, 1))
+    r_bounds : tuple[float, float]
+        the bounds for the r-axis (default is (0, 4))
+    resolution : int
+        the resolution of the r-values (default is 1000)
+    max_steps : int
+        the maximum number of steps in each sequence (default is 100_000)
+    figure : matplotlib.figure.Figure
+        the figure object of the plot
+    ax : matplotlib.axes.Axes
+        the axes object of the plot
+    r_values : numpy.ndarray
+        the r-values used in the plot
+    sequences : list[Iterator]
+        the sequences of the map
+
+    Methods
+    -------
+    _on_lims_change(_: matplotlib.backend_bases.Event) -> None
+        Handles the event when the limits of the axes are changed.
+    display() -> None
+        Displays the bifurcation diagram.
+    reset_axes_limits() -> None
+        Resets the limits of the axes to the original bounds.
+    draw() -> None
+        Draws the bifurcation diagram.
+    """
+
     def __init__(
         self,
         map_class: type[Map],
@@ -19,77 +69,218 @@ class BifurcationDiagram:
         resolution: int = 1000,
         max_steps: int = 100_000,
     ):
+        """
+        Constructs all the necessary attributes for the BifurcationDiagram object.
+
+        Parameters
+        ----------
+            map_class : type[Map]
+                a class that represents the map used in the bifurcation diagram
+            initial_values : list[float]
+                a list of initial values for the map sequences (default is [0.5])
+            steps_to_skip : int
+                the number of steps to skip in each sequence before plotting (default is 100)
+            n_points : int
+                the number of points to plot in each sequence (default is 100)
+            x_bounds : tuple[float, float]
+                the bounds for the x-axis (default is (0, 1))
+            r_bounds : tuple[float, float]
+                the bounds for the r-axis (default is (0, 4))
+            resolution : int
+                the resolution of the r-values (default is 1000)
+            max_steps : int
+                the maximum number of steps in each sequence (default is 100_000)
+        """
         self.map_class = map_class
         self.initial_values = initial_values or [0.5]
         self.steps_to_skip = steps_to_skip
         self.n_points = n_points
+        self.total_points_to_plot = n_points * resolution
         self.x_bounds = x_bounds
         self.r_bounds = r_bounds
+        self.zoom_box = [(x_bounds[0], r_bounds[0]), (x_bounds[1], r_bounds[1])]
         self.resolution = resolution
         self.max_steps = max_steps
         self.figure, self.ax = plt.subplots(figsize=(16, 9))
         self.ax.set_ylabel("x")
         self.ax.set_xlabel("r")
         self.r_values = np.linspace(self.r_bounds[0], self.r_bounds[1], self.resolution)
-        self.sequences = [
-            self.map_class(r).sequence(self.initial_values, self.max_steps)
-            for r in self.r_values
-        ]
+        self.sequences = self.generator_sequences()
+        self.progress_text = self.ax.text(
+            0.01,
+            0.99,
+            "",
+            transform=self.ax.transAxes,
+            ha="left",
+            va="top",
+            bbox=dict(facecolor="black", alpha=1.0, edgecolor="none"),
+        )
+        self._proceed = True
 
-    def _on_lims_change(self, _: matplotlib.backend_bases.Event) -> None:
-        plt.pause(0.1)
-        self.figure.canvas.draw()
-        self.x_bounds = self.ax.get_xlim()
-        self.r_bounds = self.ax.get_ylim()
+    def generator_sequences(self) -> list[Iterator[list[float]]]:
+        """
+        Generate sequence generator functions of the map for each of self.r_values.
+
+        Returns
+        -------
+        list[Iterator]
+            the sequences of the map
+        """
+        return [self.map_class(r).sequence(self.initial_values) for r in self.r_values]
+
+    def _begin_zoom_box(self, event: matplotlib.backend_bases.MouseEvent) -> None:
+        """
+        Collect starting point of zoom box from mouse press event.
+
+        Parameters
+        ----------
+            event : matplotlib.backend_bases.Event
+                the event object
+        """
+        self._proceed = False
+        self.zoom_box[0] = (event.xdata, event.ydata)
+
+    def _finish_zoom_box(self, event: matplotlib.backend_bases.MouseEvent) -> None:
+        """
+        Collect ending point of zoom box from mouse release event, update axes limits and begin redrawing.
+
+        Parameters
+        ----------
+            event : matplotlib.backend_bases.Event
+                the event object
+        """
+        self._proceed = True
+        self.zoom_box[1] = (event.xdata, event.ydata)
+        self.restart()
+
+    def restart(self) -> None:
+        """
+        Restart the bifurcation diagram. In case of change of bounds, for example.
+        """
+        self._update_bounds()
+        self._clear_points()
         self.r_values = np.linspace(self.r_bounds[0], self.r_bounds[1], self.resolution)
-        self.sequences = [
-            self.map_class(r).sequence(self.initial_values, self.max_steps)
-            for r in self.r_values
-        ]
+        self.sequences = self.generator_sequences()
+        self.populate()
+
+    def _update_bounds(self) -> None:
+        """
+        Update the bounds of the axes based on the zoom box.
+        """
+        x0, y0 = self.zoom_box[0]
+        x1, y1 = self.zoom_box[1]
+        self.r_bounds = (min(x0, x1), max(x0, x1))
+        self.x_bounds = (min(y0, y1), max(y0, y1))
+        self.ax.set_xlim(self.r_bounds)
+        self.ax.set_ylim(self.x_bounds)
+
+    def _clear_points(self) -> None:
+        """
+        Remove any datapoints from the figure or axes that are not inside the current x_bounds and r_bounds.
+        """
+        while self.ax.lines:
+            self.ax.lines[0].remove()
         self.draw()
 
     def display(self) -> None:
+        """
+        display the bifurcation diagram.
+
+        Show the bifurcation diagram plot.
+        """
         plt.show(block=False)
         self.reset_axes_limits()
-        # self.ax.callbacks.connect("xlim_changed", self._on_lims_change)
-        self.ax.callbacks.connect("ylim_changed", self._on_lims_change)
-        self.draw()
+        self.figure.canvas.mpl_connect("button_press_event", self._begin_zoom_box)
+        self.figure.canvas.mpl_connect("button_release_event", self._finish_zoom_box)
+        self.populate()
 
     def reset_axes_limits(self) -> None:
+        """
+        Set axes limits to match bifurcation diagram bounds.
+        """
         self.ax.set_ylim(self.x_bounds)
         self.ax.set_xlim(self.r_bounds)
 
-    def draw(self) -> None:
-        for sequence in self.sequences:
-            for _ in range(self.steps_to_skip):
-                next(sequence)
+    def _skip_initial_data(self) -> None:
+        """
+        Skip the initial data points in the sequences.
+        """
+        self.progress_text.set_visible(True)
+        self.progress_text.set_text("Skipping initial data...")
+        self.draw()
+        points_found = np.full(self.resolution, 0)
+        while np.all(points_found < self.steps_to_skip) and self._proceed:
+            points_found = np.add(
+                points_found,
+                [
+                    self.steps_to_skip
+                    if not (
+                        num_found := len(
+                            [
+                                True
+                                for _ in range(self.steps_to_skip)
+                                for x in next(sequence)
+                                if self.x_bounds[0] <= x <= self.x_bounds[1]
+                            ]
+                        )
+                        if points_found_this_sequence < self.steps_to_skip
+                        else 0
+                    )
+                    and np.any(points_found > self.steps_to_skip)
+                    else num_found
+                    for points_found_this_sequence, sequence in zip(
+                        points_found, self.sequences
+                    )
+                ],
+            )
 
-        plot_pairs = []
-        for i in range(self.n_points):
-            plot_pairs += [
-                (r, x)
-                for r, sequence in zip(self.r_values, self.sequences)
-                for x in next(sequence)
-            ]
-            if i % round(self.n_points / 20) == 0 or i == self.n_points - 1:
-                rs, xes = zip(*plot_pairs)
-                self.ax.plot(
-                    rs,
-                    xes,
-                    ".",
-                    markersize=0.3,
-                    alpha=0.4,
-                    color="aquamarine",
+    def populate(self) -> None:
+        """
+        Draw the bifurcation diagram. Updates the plot frame.
+        """
+        self._skip_initial_data()
+        plot_pairs: list[tuple[float, float]] = []
+        points_found = np.full(self.resolution, 0)
+        total_points_found = 0
+        chunk_size = 1 / 20
+        while total_points_found < self.total_points_to_plot and self._proceed:
+            while (
+                len(plot_pairs) / self.total_points_to_plot <= chunk_size
+                and self._proceed
+            ):
+                for r, sequence, points_found_this_sequence in zip(
+                    self.r_values, self.sequences, points_found
+                ):
+                    if points_found_this_sequence < self.steps_to_skip:
+                        plot_pairs += [  # add points to the plot if they are within bounds
+                            (r, x)
+                            for x in next(sequence)
+                            if self.r_bounds[0] <= r <= self.r_bounds[1]
+                            and self.x_bounds[0] <= x <= self.x_bounds[1]
+                        ]
+            total_points_found += len(plot_pairs)
+            rs, xes = zip(*plot_pairs)
+            self.ax.plot(
+                rs,
+                xes,
+                ".",
+                markersize=0.3,
+                alpha=0.4,
+                color="aquamarine",
+            )
+            if total_points_found < self.total_points_to_plot:
+                self.progress_text.set_visible(True)
+                self.progress_text.set_text(
+                    f"{total_points_found / self.total_points_to_plot:6.1%}"
                 )
-                self.ax.text(
-                    0.01,
-                    0.99,
-                    f"{(i + 1)/self.n_points:.1%}",
-                    transform=self.ax.transAxes,
-                    ha="left",
-                    va="top",
-                    bbox=dict(facecolor="black", alpha=1.0, edgecolor="none"),
-                )
-                plot_pairs = []
-                self.figure.canvas.draw()
-                plt.pause(0.00000001)
+            else:
+                self.progress_text.set_visible(False)
+            plot_pairs = []
+            self.draw()
+
+    def draw(self) -> None:
+        """
+        Updates the plot frame.
+        """
+        self.figure.canvas.draw()
+        plt.pause(PLOT_DRAW_PAUSE_TIME)
