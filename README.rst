@@ -20,13 +20,34 @@ Citsigol is an investigatory package providing utilities for investigation and m
 
 
 * Free software: MIT license
-* Documentation: https://citsigol.readthedocs.io.
+* Documentation: (Will eventually be at) https://citsigol.readthedocs.io.
 
 
 Features
 --------
 
-* TODO
+* Provides the logistic map and its inverse, the citsigol map.
+* Provides general utilities for investigating other maps.
+* Bifurcation diagrams include dynamic zooming and generally retain plot quality up to machine precision limitations.
+* Sequence generators
+
+Development
+-----------
+Setup should be quite standard. The following should be sufficient to get started:
+
+::
+
+    git clone https://github.com/7c-c7/citsigol.git
+    cd citsigol
+    python -m venv venv
+    source venv/bin/activate
+    pip install -r requirements_dev.txt
+    pip install -e .
+
+You can test the package by running `pytest` in the root directory.
+
+This package was built with Python 3.12 and later in mind, It may work with earlier versions but this is not guaranteed.
+
 
 Credits
 -------
