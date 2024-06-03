@@ -24,4 +24,4 @@ jobs:
         pip install .
 
     - name: Run Demo
-      run: python citsigol/src/citsigol/demo.py
+      run: python src/citsigol/demo.py
