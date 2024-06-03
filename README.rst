@@ -42,6 +42,8 @@ Clone the repo and install it from source into your system's python installation
     pip install ./citsigol
     python ./citsigol/src/citsigol/demo.py
 
+In the matplotlib window that opens, you'll see a logistic bifurcation diagram. You can click and drag to zoom. The diagram should repopulate itself dynamically.
+
 If you have any issues, please report them! This is a learning effort, and we are happy to get feedback and improve the package.
 
 Development
