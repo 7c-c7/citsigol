@@ -68,6 +68,8 @@ You can test the package by running `pytest` in the root directory.
 
 This package was built with Python 3.12 and later in mind, It may work with earlier versions but this is not guaranteed.
 
+We would be happy to review your Pull Requests and to see your ideas for features and improvements.
+
 
 Credits
 -------
