@@ -1,4 +1,5 @@
-from typing import Iterator
+import dataclasses
+import typing
 
 import matplotlib.backend_bases
 import numpy as np
@@ -13,16 +14,17 @@ PLOT_DRAW_PAUSE_TIME = (
 plt.style.use("dark_background")
 
 
-class BifurcationDiagram:
+@dataclasses.dataclass
+class BifurcationDiagramConfig:
     """
-    A class used to represent a Bifurcation Diagram.
+    A dataclass used to represent the configuration of a Bifurcation Diagram.
 
     ...
 
     Attributes
     ----------
     map_class : type[Map]
-        a class that represents the map used in the bifurcation diagram
+        a class that represents the map used in the bifurcation diagram, for filling in defaults
     initial_values : list[float]
         a list of initial values for the map sequences (default is [0.5])
     steps_to_skip : int
@@ -37,6 +39,36 @@ class BifurcationDiagram:
         the resolution of the r-values (default is 1000)
     max_steps : int
         the maximum number of steps in each sequence (default is 100_000)
+    """
+
+    map_class: type[Map] | None = None
+    initial_values: list[float] = dataclasses.field(default_factory=lambda: [0.5])
+    steps_to_skip: int = None  # type: ignore
+    n_points: int = None  # type: ignore
+    x_bounds: tuple[float, float] = None  # type: ignore
+    r_bounds: tuple[float, float] = None  # type: ignore
+    resolution: int = None  # type: ignore
+    max_steps: int = None  # type: ignore
+
+    def __post_init__(self) -> None:
+        if self.map_class is None:
+            return
+
+        for field in dataclasses.fields(self):
+            if (default := getattr(self, field.name, None)) is not None:
+                setattr(self, field.name, default)
+
+
+class BifurcationDiagram:
+    """
+    A class used to represent a Bifurcation Diagram.
+
+    Attributes
+    ----------
+    map_class : type[Map]
+        a class that represents the map used in the bifurcation diagram
+    config : BifurcationDiagramConfig
+        the configuration for the bifurcation diagram, see BifurcationDiagramConfig for attributes
     figure : matplotlib.figure.Figure
         the figure object of the plot
     ax : matplotlib.axes.Axes
@@ -61,13 +93,7 @@ class BifurcationDiagram:
     def __init__(
         self,
         map_class: type[Map],
-        initial_values: list[float] | None = None,
-        steps_to_skip: int = 100,
-        n_points: int = 100,
-        x_bounds: tuple[float, float] = (0, 1),
-        r_bounds: tuple[float, float] = (0, 4),
-        resolution: int = 1000,
-        max_steps: int = 100_000,
+        config: BifurcationDiagramConfig,
     ):
         """
         Constructs all the necessary attributes for the BifurcationDiagram object.
@@ -76,35 +102,22 @@ class BifurcationDiagram:
         ----------
             map_class : type[Map]
                 a class that represents the map used in the bifurcation diagram
-            initial_values : list[float]
-                a list of initial values for the map sequences (default is [0.5])
-            steps_to_skip : int
-                the number of steps to skip in each sequence before plotting (default is 100)
-            n_points : int
-                the number of points to plot in each sequence (default is 100)
-            x_bounds : tuple[float, float]
-                the bounds for the x-axis (default is (0, 1))
-            r_bounds : tuple[float, float]
-                the bounds for the r-axis (default is (0, 4))
-            resolution : int
-                the resolution of the r-values (default is 1000)
-            max_steps : int
-                the maximum number of steps in each sequence (default is 100_000)
+            config : BifurcationDiagramConfig
+                the configuration for the bifurcation diagram, see BifurcationDiagramConfig for attributes
         """
         self.map_class = map_class
-        self.initial_values = initial_values or [0.5]
-        self.steps_to_skip = steps_to_skip
-        self.n_points = n_points
-        self.total_points_to_plot = n_points * resolution
-        self.x_bounds = x_bounds
-        self.r_bounds = r_bounds
-        self.zoom_box = [(x_bounds[0], r_bounds[0]), (x_bounds[1], r_bounds[1])]
-        self.resolution = resolution
-        self.max_steps = max_steps
+        self.config = config
+        for field in dataclasses.fields(self.config):
+            setattr(self, field.name, getattr(self.config, field.name))
+
+        self.total_points_to_plot = self.config.n_points * self.config.resolution
+        self.zoom_box: list[tuple[float, float]] = [(0, 0), (0, 0)]
         self.figure, self.ax = plt.subplots(figsize=(16, 9))
         self.ax.set_ylabel("x")
         self.ax.set_xlabel("r")
-        self.r_values = np.linspace(self.r_bounds[0], self.r_bounds[1], self.resolution)
+        self.r_values = np.linspace(
+            self.config.r_bounds[0], self.config.r_bounds[1], self.config.resolution
+        )
         self.sequences = self.generator_sequences()
         self.progress_text = self.ax.text(
             0.01,
@@ -117,7 +130,7 @@ class BifurcationDiagram:
         )
         self._proceed = True
 
-    def generator_sequences(self) -> list[Iterator[list[float]]]:
+    def generator_sequences(self) -> list[typing.Iterator[list[float]]]:
         """
         Generate sequence generator functions of the map for each of self.r_values.
 
@@ -126,7 +139,10 @@ class BifurcationDiagram:
         list[Iterator]
             the sequences of the map
         """
-        return [self.map_class(r).sequence(self.initial_values) for r in self.r_values]
+        return [
+            self.map_class(r).sequence(self.config.initial_values)
+            for r in self.r_values
+        ]
 
     def _begin_zoom_box(self, event: matplotlib.backend_bases.MouseEvent) -> None:
         """
@@ -159,7 +175,9 @@ class BifurcationDiagram:
         """
         self._update_bounds()
         self._clear_points()
-        self.r_values = np.linspace(self.r_bounds[0], self.r_bounds[1], self.resolution)
+        self.r_values = np.linspace(
+            self.config.r_bounds[0], self.config.r_bounds[1], self.config.resolution
+        )
         self.sequences = self.generator_sequences()
         self.populate()
 
@@ -169,10 +187,10 @@ class BifurcationDiagram:
         """
         x0, y0 = self.zoom_box[0]
         x1, y1 = self.zoom_box[1]
-        self.r_bounds = (min(x0, x1), max(x0, x1))
-        self.x_bounds = (min(y0, y1), max(y0, y1))
-        self.ax.set_xlim(self.r_bounds)
-        self.ax.set_ylim(self.x_bounds)
+        self.config.r_bounds = (min(x0, x1), max(x0, x1))
+        self.config.x_bounds = (min(y0, y1), max(y0, y1))
+        self.ax.set_xlim(self.config.r_bounds)
+        self.ax.set_ylim(self.config.x_bounds)
 
     def _clear_points(self) -> None:
         """
@@ -198,8 +216,8 @@ class BifurcationDiagram:
         """
         Set axes limits to match bifurcation diagram bounds.
         """
-        self.ax.set_ylim(self.x_bounds)
-        self.ax.set_xlim(self.r_bounds)
+        self.ax.set_ylim(self.config.x_bounds)
+        self.ax.set_xlim(self.config.r_bounds)
 
     def _skip_initial_data(self) -> None:
         """
@@ -208,25 +226,27 @@ class BifurcationDiagram:
         self.progress_text.set_visible(True)
         self.progress_text.set_text("Skipping initial data...")
         self.draw()
-        points_found = np.full(self.resolution, 0)
-        while np.all(points_found < self.steps_to_skip) and self._proceed:
+        points_found = np.full(self.config.resolution, 0)
+        while np.all(points_found < self.config.steps_to_skip) and self._proceed:
             points_found = np.add(
                 points_found,
                 [
-                    self.steps_to_skip
+                    self.config.steps_to_skip
                     if not (
                         num_found := len(
                             [
                                 True
-                                for _ in range(self.steps_to_skip)
-                                for x in next(sequence)
-                                if self.x_bounds[0] <= x <= self.x_bounds[1]
+                                for _ in range(self.config.steps_to_skip)
+                                for x in next(sequence, [])
+                                if self.config.x_bounds[0]
+                                <= x
+                                <= self.config.x_bounds[1]
                             ]
                         )
-                        if points_found_this_sequence < self.steps_to_skip
+                        if points_found_this_sequence < self.config.steps_to_skip
                         else 0
                     )
-                    and np.any(points_found > self.steps_to_skip)
+                    and np.any(points_found > self.config.steps_to_skip)
                     else num_found
                     for points_found_this_sequence, sequence in zip(
                         points_found, self.sequences
@@ -240,7 +260,7 @@ class BifurcationDiagram:
         """
         self._skip_initial_data()
         plot_pairs: list[tuple[float, float]] = []
-        points_found = np.full(self.resolution, 0)
+        points_found = np.full(self.config.resolution, 0)
         total_points_found = 0
         chunk_size = 1 / 20
         while total_points_found < self.total_points_to_plot and self._proceed:
@@ -251,12 +271,12 @@ class BifurcationDiagram:
                 for r, sequence, points_found_this_sequence in zip(
                     self.r_values, self.sequences, points_found
                 ):
-                    if points_found_this_sequence < self.steps_to_skip:
+                    if points_found_this_sequence < self.config.steps_to_skip:
                         plot_pairs += [  # add points to the plot if they are within bounds
                             (r, x)
-                            for x in next(sequence)
-                            if self.r_bounds[0] <= r <= self.r_bounds[1]
-                            and self.x_bounds[0] <= x <= self.x_bounds[1]
+                            for x in next(sequence, [])
+                            if self.config.r_bounds[0] <= r <= self.config.r_bounds[1]
+                            and self.config.x_bounds[0] <= x <= self.config.x_bounds[1]
                         ]
             total_points_found += len(plot_pairs)
             rs, xes = zip(*plot_pairs)

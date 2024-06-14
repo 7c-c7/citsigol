@@ -1,55 +1,51 @@
 """Demo script for citsigol."""
 
-import math
-
 import matplotlib.pyplot as plt
 import numpy as np
 
 import citsigol
 import citsigol.logistic as logistic
-from citsigol.bifurcation import BifurcationDiagram
+from citsigol.bifurcation import BifurcationDiagram, BifurcationDiagramConfig
 
 
 def main() -> None:
     """Demo script for citsigol."""
     print("Welcome to citsigol!")
 
-    r_resolution = 1000
-    n_points = 2000
-    n_skip = 300
-    r_limits = (-2, 4)
-    x_limits = (-0.5, 1.5)
     # plot the classic bifurcation diagram of the logistic map
     print("Plotting the classic bifurcation diagram of the logistic map...")
-    bifurcation_diagram = BifurcationDiagram(
-        logistic.LogisticMap,
-        steps_to_skip=n_skip,
+    logistic_bifurcation_config = BifurcationDiagramConfig(
+        map_class=logistic.LogisticMap,
+        steps_to_skip=300,
         initial_values=list(np.linspace(0, 1, 11)),
-        n_points=n_points,
-        resolution=r_resolution,
-        r_bounds=r_limits,
-        x_bounds=x_limits,
+        n_points=2000,
+        resolution=1000,
+        r_bounds=(-2, 4),
+        x_bounds=(-0.5, 1.5),
     )
-    bifurcation_diagram.display()
+    logistic_bifurcation_diagram = BifurcationDiagram(
+        logistic.LogisticMap,
+        config=logistic_bifurcation_config,
+    )
+    logistic_bifurcation_diagram.display()
 
     # plot the citsigol map with a few different r and target values
-    print("Plotting the citsigol map with a few different r and target values...")
-    n_iterations = 10
-    r_values = [0.5, 1.5, 2.5, math.pi, 3.5, 3.8]
-    plt.figure(figsize=(16, 9))
-    plt.title("Citsigol Map with Compass")
-    plt.xlabel("n")
-    plt.ylabel("x_n")
-    for r in r_values:
-        print(f"r={r:.5f}")
-        exes = list(citsigol.CitsigolMap(r).sequence([max(0.1, r / 5)], n_iterations))
-        steps = [step for i, x in enumerate(exes) for step in len(x) * [i]]
-        plot_exes = [x for xs in exes for x in xs]
-        plt.plot(steps, plot_exes, ".", label=f"r={r}")
-    plt.legend()
-    plt.title("Citsigol Map with Compass")
-    plt.xlabel("n")
-    plt.ylabel("x_n")
+    print("Plotting the citsigol map's bifurcation diagram...")
+    citsigol_bifurcation_config = BifurcationDiagramConfig(
+        map_class=citsigol.CitsigolMap,
+        steps_to_skip=10,
+        initial_values=[0.1],
+        n_points=100,
+        resolution=100,
+        r_bounds=(3, 4),
+        x_bounds=(0, 1),
+        max_steps=100,
+    )
+    citsigol_bifurcation_diagram = BifurcationDiagram(
+        citsigol.CitsigolMap,
+        config=citsigol_bifurcation_config,
+    )
+    citsigol_bifurcation_diagram.display()
     plt.show()
 
 

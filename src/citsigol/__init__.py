@@ -11,6 +11,14 @@ import numpy as np
 
 
 class Map:
+    initial_values: list[float] | None = None
+    steps_to_skip: int = 100
+    n_points: int = 100
+    x_bounds: tuple[float, float] = (0, 1)
+    r_bounds: tuple[float, float] = (0, 4)
+    resolution: int = 1000
+    max_steps: int = 100_000
+
     def __init__(self, function: Callable[[list[float]], list[float]]):
         def next_value(x: list[float]) -> list[float]:
             return function(x)
@@ -127,11 +135,19 @@ class CitsigolMap(Map):
     A citsigol (reverse logistic) map.
     """
 
+    initial_values = None
+    steps_to_skip = 10
+    n_points = 100
+    x_bounds = (0, 1)
+    r_bounds = (0, 4)
+    resolution = 100
+    max_steps = 1000
+
     def __init__(self, r: float):
         self.r = r
 
         def _citsigol_scalar(x: float) -> list[float]:
-            if (discriminant := 1 - 4 * x / self.r) >= 0:
+            if self.r and (discriminant := 1 - 4 * x / self.r) >= 0:
                 return [0.5 * (1 - discriminant**0.5), 0.5 * (1 + discriminant**0.5)]
             return []
 
