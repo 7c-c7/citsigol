@@ -33,13 +33,13 @@ def main() -> None:
     print("Plotting the citsigol map's bifurcation diagram...")
     citsigol_bifurcation_config = BifurcationDiagramConfig(
         map_class=citsigol.CitsigolMap,
-        steps_to_skip=10,
-        initial_values=[0.1],
-        n_points=100,
-        resolution=100,
+        steps_to_skip=12,
+        initial_values=list(np.linspace(0, 1, 5)),
+        n_points=2000,
+        resolution=1000,
         r_bounds=(3, 4),
         x_bounds=(0, 1),
-        max_steps=100,
+        max_steps=1000,
     )
     citsigol_bifurcation_diagram = BifurcationDiagram(
         citsigol.CitsigolMap,

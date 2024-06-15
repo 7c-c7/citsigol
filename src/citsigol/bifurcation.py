@@ -227,7 +227,7 @@ class BifurcationDiagram:
         self.progress_text.set_text("Skipping initial data...")
         self.draw()
         points_found = np.full(self.config.resolution, 0)
-        while np.all(points_found < self.config.steps_to_skip) and self._proceed:
+        while self._proceed and np.all(points_found < self.config.steps_to_skip):
             points_found = np.add(
                 points_found,
                 [
@@ -263,10 +263,10 @@ class BifurcationDiagram:
         points_found = np.full(self.config.resolution, 0)
         total_points_found = 0
         chunk_size = 1 / 20
-        while total_points_found < self.total_points_to_plot and self._proceed:
+        while self._proceed and total_points_found < self.total_points_to_plot:
             while (
-                len(plot_pairs) / self.total_points_to_plot <= chunk_size
-                and self._proceed
+                self._proceed
+                and len(plot_pairs) / self.total_points_to_plot <= chunk_size
             ):
                 for r, sequence, points_found_this_sequence in zip(
                     self.r_values, self.sequences, points_found
