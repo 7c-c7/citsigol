@@ -26,6 +26,9 @@ class LogisticMap(Map):
 
         super().__init__(_logistic_function)
 
+    def __repr__(self) -> str:
+        return f"LogisticMap(r={self.r})"
+
 
 def iterated_logistic_polynomial(r: float, n: int) -> Polynomial:
     """

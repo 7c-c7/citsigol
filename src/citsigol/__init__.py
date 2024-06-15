@@ -5,9 +5,21 @@ __email__ = "dustinsummy@gmail.com"
 __version__ = "0.1.0"
 
 from abc import ABC, abstractmethod
-from typing import Callable, Generator, Iterable
+from typing import Any, Callable, Generator, Iterable
 
+import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.collections import LineCollection
+
+# Dynamically retrieve the parameters of plt.subplots and ax.plot
+PYPLOT_SUBPLOTS_KWARGS = {"figsize", "dpi"}
+PYPLOT_LINE_COLLECTION_KWARGS = {
+    "edgecolors",
+    "facecolors",
+    "linestyles",
+    "linewidths",
+    "alpha",
+}
 
 
 class Map:
@@ -129,6 +141,71 @@ class Map:
             return x_history
         return np.array([])
 
+    def plot(
+        self,
+        x_0: list[float],
+        n_steps: int = 100,
+        ax: plt.Axes = None,
+        **kwargs: Any,
+    ) -> tuple[plt.Figure, plt.Axes]:
+        """
+        Plot the Map on the given axes, or create a new figure and axes to plot on.
+
+        Plots the Map starting from the initial value `x_0` for `n_steps` iterations.
+
+        All subsequent points will be connected by lines to their origin in the x vector (lines with multiple branches
+        will fork at each iteration).
+
+        Parameters
+        ----------
+        x_0 : list[float]
+            Initial value(s).
+        n_steps : int, optional
+            Number of iterations to plot, by default 100.
+        ax : plt.Axes, optional
+            Axes to plot on.
+            If None (default), a new figure and axes will be created.
+        **kwargs
+            Additional keyword arguments to pass to plt.subplots and ax.plot.
+
+        Returns
+        -------
+        plt.Figure, plt.Axes
+            Figure and axes of the plot.
+        """
+
+        # Filter kwargs for plt.subplots and ax.plot
+        subplots_kwargs = {
+            k: v for k, v in kwargs.items() if k in PYPLOT_SUBPLOTS_KWARGS
+        }
+        plot_kwargs = {
+            k: v for k, v in kwargs.items() if k in PYPLOT_LINE_COLLECTION_KWARGS
+        }
+        if "label" not in plot_kwargs:
+            plot_kwargs["label"] = self.__repr__()
+
+        if ax is None:
+            fig, ax = plt.subplots(**subplots_kwargs)
+        else:
+            fig = ax.figure
+
+        lines: list[tuple[tuple[int, float], tuple[int, float]]] = []
+        x_vals = x_0.copy()
+        for i in range(n_steps):
+            next_x = []
+            for x_i in x_vals:
+                next_x += (result_xs := self([x_i]))
+                lines += [((i, x_i), (i + 1, x_i_plus_1)) for x_i_plus_1 in result_xs]
+            x_vals = next_x.copy()
+
+        line_collection = LineCollection(lines, **plot_kwargs)
+        line_collection.set_label(kwargs["label"])
+        ax.add_collection(line_collection)
+        ax.set_xlim((0, n_steps))
+        ax.set_ylim(self.x_bounds)
+        fig.canvas.draw()
+        return fig, ax
+
 
 class CitsigolMap(Map):
     """
@@ -155,6 +232,9 @@ class CitsigolMap(Map):
             return [next_val for x_vals in x for next_val in _citsigol_scalar(x_vals)]
 
         super().__init__(_citsigol_vector)
+
+    def __repr__(self) -> str:
+        return f"CitsigolMap(r={self.r})"
 
 
 class Compass(ABC):
