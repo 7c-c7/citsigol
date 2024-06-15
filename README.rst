@@ -5,6 +5,18 @@ citsigol
 .. image:: https://lh3.googleusercontent.com/d/1pgT04PvnFX8Mz53zffG_CGOcUdUhamEP
 Imagine this... But *backwards!*
 
+.. image:: https://lh3.googleusercontent.com/d/1bIm20r7oPoGTdU4NXLBt157TllT0E_pC
+The citsigol (reverse logistic) map is a strange thing...
+
+.. image:: https://lh3.googleusercontent.com/d/1eW0LlWZnE9CVI10xFG-vTUk0yDcbxrPn
+It has a fingerprint-like structure...
+
+.. image:: https://lh3.googleusercontent.com/d/1c_1zBR_PDuo6cSnXD_hCKQC7bwSHUI4W
+The citsigol map branches on each iteration, which causes some interesting challenges for working with it.
+
+.. image:: https://lh3.googleusercontent.com/d/1OreqbaS26oc34hXWPTH-tMEofyiiRmx0
+Gratuitous high zoom logistic map bifurcation diagram plot...
+
 ..
     .. image:: https://img.shields.io/pypi/v/citsigol.svg
             :target: https://pypi.python.org/pypi/citsigol
