@@ -68,7 +68,9 @@ def main() -> None:
         config=logistic_bifurcation_config,
     )
     logistic_bifurcation_diagram.display()
-    logistic_bifurcation_diagram.ax.set_title("Logistic Map Bifurcation Diagram")
+    logistic_bifurcation_diagram.ax.set_title(
+        "Logistic Map Bifurcation Diagram (Drag to Zoom)"
+    )
     plt.show()
 
     # plot the citsigol map with a few different r and target values
@@ -88,7 +90,9 @@ def main() -> None:
         config=citsigol_bifurcation_config,
     )
     citsigol_bifurcation_diagram.display()
-    logistic_bifurcation_diagram.ax.set_title("Citsigol Map Bifurcation Diagram")
+    citsigol_bifurcation_diagram.ax.set_title(
+        "Citsigol Map Bifurcation Diagram (Drag to Zoom)"
+    )
     plt.show()
 
     print("Plotting a novel, user-defined map...")
