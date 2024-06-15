@@ -1,12 +1,14 @@
 import dataclasses
 import typing
 
+import matplotlib
 import matplotlib.backend_bases
+import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import pyplot as plt
 
 from citsigol import Map
 
+FIG_SIZE = (16, 9)
 PLOT_DRAW_PAUSE_TIME = (
     1e-8  # pausing is required when drawing the plot to avoid skipping the drawing.
 )
@@ -94,6 +96,7 @@ class BifurcationDiagram:
         self,
         map_class: type[Map],
         config: BifurcationDiagramConfig,
+        **kwargs: typing.Any,
     ):
         """
         Constructs all the necessary attributes for the BifurcationDiagram object.
@@ -104,7 +107,11 @@ class BifurcationDiagram:
                 a class that represents the map used in the bifurcation diagram
             config : BifurcationDiagramConfig
                 the configuration for the bifurcation diagram, see BifurcationDiagramConfig for attributes
+            kwargs : dict
+                additional keyword arguments for the plot, mimicking matplotlib.pyplot.subplots kwargs
         """
+        if "fig_size" not in kwargs:
+            kwargs["fig_size"] = FIG_SIZE
         self.map_class = map_class
         self.config = config
         for field in dataclasses.fields(self.config):
@@ -112,7 +119,9 @@ class BifurcationDiagram:
 
         self.total_points_to_plot = self.config.n_points * self.config.resolution
         self.zoom_box: list[tuple[float, float]] = [(0, 0), (0, 0)]
-        self.figure, self.ax = plt.subplots(figsize=(16, 9))
+        matplotlib.rcParams["toolbar"] = "None"
+        self.figure, self.ax = plt.subplots(figsize=kwargs["fig_size"])
+        matplotlib.rcParams["toolbar"] = "toolbar2"
         self.ax.set_ylabel("x")
         self.ax.set_xlabel("r")
         self.r_values = np.linspace(
@@ -206,7 +215,9 @@ class BifurcationDiagram:
 
         Show the bifurcation diagram plot.
         """
+        matplotlib.rcParams["toolbar"] = "None"
         plt.show(block=False)
+        matplotlib.rcParams["toolbar"] = "toolbar2"
         self.reset_axes_limits()
         self.figure.canvas.mpl_connect("button_press_event", self._begin_zoom_box)
         self.figure.canvas.mpl_connect("button_release_event", self._finish_zoom_box)
