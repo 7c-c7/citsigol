@@ -2,20 +2,43 @@
 citsigol
 ========
 
-.. image:: https://lh3.googleusercontent.com/d/1pgT04PvnFX8Mz53zffG_CGOcUdUhamEP
+Citsigol is an investigatory package providing utilities for investigation and manipulation of the reversed logistic (citsigol) map.
+
+* Free software: MIT license
+
+..
+    * Documentation: (Will eventually be at) https://citsigol.readthedocs.io.
+
+Features
+--------
+
+* Provides the logistic map and its inverse, the citsigol map.
+* Provides general utilities for investigating other maps.
+* Bifurcation diagrams include dynamic zooming and generally retain plot quality up to machine precision limitations.
+* Sequence generators
+
 Imagine this... But *backwards!*
 
-.. image:: https://lh3.googleusercontent.com/d/1bIm20r7oPoGTdU4NXLBt157TllT0E_pC
+.. image:: https://lh3.googleusercontent.com/d/1pgT04PvnFX8Mz53zffG_CGOcUdUhamEP
+
+
 The citsigol (reverse logistic) map is a strange thing...
 
-.. image:: https://lh3.googleusercontent.com/d/1eW0LlWZnE9CVI10xFG-vTUk0yDcbxrPn
+.. image:: https://lh3.googleusercontent.com/d/1bIm20r7oPoGTdU4NXLBt157TllT0E_pC
+
+
 It has a fingerprint-like structure...
 
-.. image:: https://lh3.googleusercontent.com/d/1c_1zBR_PDuo6cSnXD_hCKQC7bwSHUI4W
+.. image:: https://lh3.googleusercontent.com/d/1eW0LlWZnE9CVI10xFG-vTUk0yDcbxrPn
+
 The citsigol map branches on each iteration, which causes some interesting challenges for working with it.
 
-.. image:: https://lh3.googleusercontent.com/d/1OreqbaS26oc34hXWPTH-tMEofyiiRmx0
+.. image:: https://lh3.googleusercontent.com/d/1c_1zBR_PDuo6cSnXD_hCKQC7bwSHUI4W
+
+
 Gratuitous high zoom logistic map bifurcation diagram plot...
+
+.. image:: https://lh3.googleusercontent.com/d/1OreqbaS26oc34hXWPTH-tMEofyiiRmx0
 
 ..
     .. image:: https://img.shields.io/pypi/v/citsigol.svg
@@ -28,25 +51,6 @@ Gratuitous high zoom logistic map bifurcation diagram plot...
             :target: https://citsigol.readthedocs.io/en/latest/?version=latest
             :alt: Documentation Status
 
-
-
-
-Citsigol is an investigatory package providing utilities for investigation and manipulation of the reversed logistic (citsigol) map.
-
-
-* Free software: MIT license
-
-..
-    * Documentation: (Will eventually be at) https://citsigol.readthedocs.io.
-
-
-Features
---------
-
-* Provides the logistic map and its inverse, the citsigol map.
-* Provides general utilities for investigating other maps.
-* Bifurcation diagrams include dynamic zooming and generally retain plot quality up to machine precision limitations.
-* Sequence generators
 
 Try it out!
 -----------
