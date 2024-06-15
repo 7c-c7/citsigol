@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "citsigol"
-version = "0.1.0"
+version = "0.2.0"
 description = "Citsigol is an investigatory package providing utilities for investigation and manipulation of the reversed logistic (citsigol) map."
 readme = "README.rst"
 authors = [
