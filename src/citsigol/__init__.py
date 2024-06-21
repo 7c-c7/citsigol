@@ -4,12 +4,14 @@ __author__ = """Dustin Phillip Summy"""
 __email__ = "dustinsummy@gmail.com"
 __version__ = "0.1.0"
 
-from abc import ABC, abstractmethod
-from typing import Any, Callable, Generator, Iterable
+import dataclasses
+from typing import Any, Callable, Generator
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import LineCollection
+
+import citsigol.bifurcation as bifurcation
 
 # Dynamically retrieve the parameters of plt.subplots and ax.plot
 PYPLOT_SUBPLOTS_KWARGS = {"figsize", "dpi"}
@@ -23,14 +25,6 @@ PYPLOT_LINE_COLLECTION_KWARGS = {
 
 
 class Map:
-    initial_values: list[float] | None = None
-    steps_to_skip: int = 100
-    n_points: int = 100
-    x_bounds: tuple[float, float] = (0, 1)
-    r_bounds: tuple[float, float] = (0, 4)
-    resolution: int = 1000
-    max_steps: int = 100_000
-
     def __init__(self, function: Callable[[list[float]], list[float]]):
         def next_value(x: list[float]) -> list[float]:
             return function(x)
@@ -201,164 +195,93 @@ class Map:
         line_collection = LineCollection(lines, **plot_kwargs)
         line_collection.set_label(kwargs["label"])
         ax.add_collection(line_collection)
-        ax.set_xlim((0, n_steps))
-        ax.set_ylim(self.x_bounds)
+        ax.autoscale()
         fig.canvas.draw()
         return fig, ax
 
 
-class CitsigolMap(Map):
-    """
-    A citsigol (reverse logistic) map.
-    """
+@dataclasses.dataclass
+class ParametrizedMap:
+    parametrized_function: Callable[[list[float], float], list[float]]
+    parameter_name: str = dataclasses.field(default_factory=lambda: "r")
+    initial_values: list[float] | None = None
+    steps_to_skip: int = 100
+    n_points: int = 100
+    x_bounds: tuple[float, float] = (0, 1)
+    parameter_bounds: tuple[float, float] = (0, 4)
+    resolution: int = 1000
+    max_steps: int = 100_000
 
-    initial_values = None
-    steps_to_skip = 10
-    n_points = 100
-    x_bounds = (0, 1)
-    r_bounds = (0, 4)
-    resolution = 100
-    max_steps = 1000
+    def __post_init__(self) -> None:
+        self.function = self.parametrized_function
 
-    def __init__(self, r: float):
-        self.r = r
+    def __call__(self, x: list[float], *args: float, **kwargs: float) -> list[float]:
+        return self.function(x, *args, **kwargs)
 
-        def _citsigol_scalar(x: float) -> list[float]:
-            if self.r and (discriminant := 1 - 4 * x / self.r) >= 0:
-                return [0.5 * (1 - discriminant**0.5), 0.5 * (1 + discriminant**0.5)]
-            return []
-
-        def _citsigol_vector(x: list[float]) -> list[float]:
-            return [next_val for x_vals in x for next_val in _citsigol_scalar(x_vals)]
-
-        super().__init__(_citsigol_vector)
-
-    def __repr__(self) -> str:
-        return f"CitsigolMap(r={self.r})"
-
-
-class Compass(ABC):
-    """
-    A compass for the citsigol map.
-
-    A callable function that accepts the current value of x and the number of steps passed, and returns +1 or -1 to
-    determine which branch of the citsigol map to follow.
-    """
-
-    @abstractmethod
-    def __call__(self, x: float | list[float], n: int) -> list[int]:
+    def bifurcation_diagram(
+        self, config: bifurcation.BifurcationDiagramConfig | None = None
+    ) -> bifurcation.BifurcationDiagram:
         """
-        Choose a branch of the citsigol map to follow.
+        Create the bifurcation diagram of the Map on the given axes, or create a new figure and axes to plot on.
 
         Parameters
         ----------
-        x : float | list[float]
-            Current value of x.
-        n : int
-            Number of steps passed.
+        config: BifurcationDiagramConfig | None
+            Configuration for the bifurcation diagram.
+            If None, a default configuration will be used based on the attributes of the ParametrizedMap.
 
         Returns
         -------
-        int
-            +1 to follow the higher branch, -1 to follow the lower branch.
+        plt.Axes
+            Axes of the plot.
         """
-        raise NotImplementedError("Compass must be implemented as a callable function.")
-
-
-class Seeker(Compass):
-    """
-    A seeker for the citsigol map.
-
-    A callable function that accepts the current value of x and the number of steps passed, and returns +1 or -1 to
-    determine which branch of the citsigol map to follow.
-    """
-
-    def __init__(self, target: float):
-        self.target = target
-
-    def __call__(self, x: float | list[float], n: int) -> list[int]:
-        """
-        Choose a branch of the citsigol map to follow.
-
-        Parameters
-        ----------
-        x : float
-            Current value of x.
-        n : int
-            Number of steps passed.
-
-        Returns
-        -------
-        int
-            +1 to follow the higher branch, -1 to follow the lower branch.
-        """
-        return [
-            int(np.sign(self.target - x_value) or 1)
-            for x_value in (x if isinstance(x, list) else [x])
-        ]  # default to higher branch if x == target
-
-
-class Quest(Compass):
-    """
-    A map quest (list of fixed directions to follow in order) for the citsigol map.
-    """
-
-    def __init__(self, directions: list[int] | Callable[[int], int]):
-        self.directions = (
-            directions.__getitem__ if isinstance(directions, list) else directions
+        config = (
+            bifurcation.BifurcationDiagramConfig(parametrized_map=self)
+            if config is None
+            else config
         )
+        return bifurcation.BifurcationDiagram(self, config)
 
-    def __call__(self, x: float | list[float], n: int) -> list[int]:
+    def map_instance(self, *args: float, **kwargs: float) -> Map:
         """
-        Choose a branch of the citsigol map to follow.
+        Build and return an instance of the Map with the parameters of the ParametrizedMap.
 
         Parameters
         ----------
-        x : float
-            Current value of x.
-        n : int
-            Number of steps passed.
+        *args
+            Additional positional arguments to pass to the Map.
+        **kwargs
+            Additional keyword arguments to pass to the Map.
 
         Returns
         -------
-        int
-            +1 to follow the higher branch, -1 to follow the lower branch.
+        Map
+            Instance of the Map with the parameters of the ParametrizedMap.
         """
-        return (len(x) if isinstance(x, list) else 1) * [self.directions(n)]
+
+        def map_function(x: list[float]) -> list[float]:
+            return self(x, *args, **kwargs)
+
+        return Map(function=map_function)
 
 
-def citsigol_branch(
-    x: Iterable[float] | float, r: float, branch: int | Iterable[int]
-) -> list[float]:
-    """
-    Evaluate the citsigol map at a point.
+def _citsigol_scalar(x: float, r: float) -> list[float]:
+    if r and (discriminant := 1 - 4 * x / r) >= 0:
+        return [0.5 * (1 - discriminant**0.5), 0.5 * (1 + discriminant**0.5)]
+    return []
 
-    Parameters
-    ----------
-    x : list[float] | float
-        Point(s) at which to evaluate the citsigol map.
-    r : float
-        Parameter of the citsigol map.
-    branch : int | Iterable[int]
-        Branch of the citsigol map to keep
-        Positive value will keep the higher branch
-        Negative value (or zero) will keep the lower branch
 
-    Returns
-    -------
-    list[float]
-        Value(s) of the citsigol map at x.
-    """
+def _citsigol_vector(x: list[float], r: float) -> list[float]:
+    return [next_val for x_val in x for next_val in _citsigol_scalar(x_val, r)]
 
-    xes = x if isinstance(x, list) else [x]
-    branch_choices = branch if isinstance(branch, Iterable) else len(xes) * [branch]
 
-    def _sign(val: float) -> int:
-        return int(np.sign(val)) or -1
-
-    discriminants = [1 - 4 * x_val / r for x_val in xes]
-    return [
-        0.5 * (1 + _sign(branch_choice) * discriminant**0.5)
-        for discriminant, branch_choice in zip(discriminants, branch_choices)
-        if discriminant >= 0
-    ]
+citsigol_map = ParametrizedMap(
+    parametrized_function=_citsigol_vector,
+    parameter_name="r",
+    steps_to_skip=10,
+    n_points=100,
+    x_bounds=(0, 1),
+    parameter_bounds=(0, 4),
+    resolution=100,
+    max_steps=1000,
+)
