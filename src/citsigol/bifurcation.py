@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 import typing
 
@@ -6,7 +8,7 @@ import matplotlib.backend_bases
 import matplotlib.pyplot as plt
 import numpy as np
 
-from citsigol import Map
+import citsigol
 
 FIG_SIZE = (16, 9)
 PLOT_DRAW_PAUSE_TIME = (
@@ -25,8 +27,8 @@ class BifurcationDiagramConfig:
 
     Attributes
     ----------
-    map_class : type[Map]
-        a class that represents the map used in the bifurcation diagram, for filling in defaults
+    parametrized_map : ParametrizedMap
+        a ParametrizedMap that represents the map used in the bifurcation diagram, for filling in defaults
     initial_values : list[float]
         a list of initial values for the map sequences (default is [0.5])
     steps_to_skip : int
@@ -35,7 +37,7 @@ class BifurcationDiagramConfig:
         the number of points to plot in each sequence (default is 100)
     x_bounds : tuple[float, float]
         the bounds for the x-axis (default is (0, 1))
-    r_bounds : tuple[float, float]
+    parameter_bounds : tuple[float, float]
         the bounds for the r-axis (default is (0, 4))
     resolution : int
         the resolution of the r-values (default is 1000)
@@ -43,22 +45,22 @@ class BifurcationDiagramConfig:
         the maximum number of steps in each sequence (default is 100_000)
     """
 
-    map_class: type[Map] | None = None
+    parametrized_map: citsigol.ParametrizedMap | None = None
     initial_values: list[float] = dataclasses.field(default_factory=lambda: [0.5])
     steps_to_skip: int = None  # type: ignore
     n_points: int = None  # type: ignore
     x_bounds: tuple[float, float] = None  # type: ignore
-    r_bounds: tuple[float, float] = None  # type: ignore
+    parameter_bounds: tuple[float, float] = None  # type: ignore
     resolution: int = None  # type: ignore
     max_steps: int = None  # type: ignore
 
     def __post_init__(self) -> None:
-        if self.map_class is None:
-            return
-
-        for field in dataclasses.fields(self):
-            if (default := getattr(self, field.name, None)) is not None:
-                setattr(self, field.name, default)
+        if self.parametrized_map is not None:
+            for field in dataclasses.fields(self):
+                if getattr(self, field.name, None) is None:
+                    setattr(
+                        self, field.name, getattr(self.parametrized_map, field.name)
+                    )
 
 
 class BifurcationDiagram:
@@ -67,8 +69,8 @@ class BifurcationDiagram:
 
     Attributes
     ----------
-    map_class : type[Map]
-        a class that represents the map used in the bifurcation diagram
+    parametrized_map : ParametrizedMap
+        a ParametrizedMap that represents the map used in the bifurcation diagram
     config : BifurcationDiagramConfig
         the configuration for the bifurcation diagram, see BifurcationDiagramConfig for attributes
     figure : matplotlib.figure.Figure
@@ -94,7 +96,7 @@ class BifurcationDiagram:
 
     def __init__(
         self,
-        map_class: type[Map],
+        parametrized_map: citsigol.ParametrizedMap,
         config: BifurcationDiagramConfig,
         **kwargs: typing.Any,
     ):
@@ -103,8 +105,8 @@ class BifurcationDiagram:
 
         Parameters
         ----------
-            map_class : type[Map]
-                a class that represents the map used in the bifurcation diagram
+            parametrized_map : ParametrizedMap
+                a ParametrizedMap that represents the map used in the bifurcation diagram
             config : BifurcationDiagramConfig
                 the configuration for the bifurcation diagram, see BifurcationDiagramConfig for attributes
             kwargs : dict
@@ -112,7 +114,7 @@ class BifurcationDiagram:
         """
         if "fig_size" not in kwargs:
             kwargs["fig_size"] = FIG_SIZE
-        self.map_class = map_class
+        self.parametrized_map = parametrized_map
         self.config = config
         for field in dataclasses.fields(self.config):
             setattr(self, field.name, getattr(self.config, field.name))
@@ -123,9 +125,11 @@ class BifurcationDiagram:
         self.figure, self.ax = plt.subplots(figsize=kwargs["fig_size"])
         matplotlib.rcParams["toolbar"] = "toolbar2"
         self.ax.set_ylabel("x")
-        self.ax.set_xlabel("r")
+        self.ax.set_xlabel(self.parametrized_map.parameter_name)
         self.r_values = np.linspace(
-            self.config.r_bounds[0], self.config.r_bounds[1], self.config.resolution
+            self.config.parameter_bounds[0],
+            self.config.parameter_bounds[1],
+            self.config.resolution,
         )
         self.sequences = self.generator_sequences()
         self.progress_text = self.ax.text(
@@ -149,7 +153,7 @@ class BifurcationDiagram:
             the sequences of the map
         """
         return [
-            self.map_class(r).sequence(self.config.initial_values)
+            self.parametrized_map.map_instance(r).sequence(self.config.initial_values)
             for r in self.r_values
         ]
 
@@ -185,7 +189,9 @@ class BifurcationDiagram:
         self._update_bounds()
         self._clear_points()
         self.r_values = np.linspace(
-            self.config.r_bounds[0], self.config.r_bounds[1], self.config.resolution
+            self.config.parameter_bounds[0],
+            self.config.parameter_bounds[1],
+            self.config.resolution,
         )
         self.sequences = self.generator_sequences()
         self.populate()
@@ -196,14 +202,14 @@ class BifurcationDiagram:
         """
         x0, y0 = self.zoom_box[0]
         x1, y1 = self.zoom_box[1]
-        self.config.r_bounds = (min(x0, x1), max(x0, x1))
+        self.config.parameter_bounds = (min(x0, x1), max(x0, x1))
         self.config.x_bounds = (min(y0, y1), max(y0, y1))
-        self.ax.set_xlim(self.config.r_bounds)
+        self.ax.set_xlim(self.config.parameter_bounds)
         self.ax.set_ylim(self.config.x_bounds)
 
     def _clear_points(self) -> None:
         """
-        Remove any datapoints from the figure or axes that are not inside the current x_bounds and r_bounds.
+        Remove any datapoints from the figure or axes that are not inside the current x_bounds and parameter_bounds.
         """
         while self.ax.lines:
             self.ax.lines[0].remove()
@@ -228,7 +234,7 @@ class BifurcationDiagram:
         Set axes limits to match bifurcation diagram bounds.
         """
         self.ax.set_ylim(self.config.x_bounds)
-        self.ax.set_xlim(self.config.r_bounds)
+        self.ax.set_xlim(self.config.parameter_bounds)
 
     def _skip_initial_data(self) -> None:
         """
@@ -286,7 +292,9 @@ class BifurcationDiagram:
                         plot_pairs += [  # add points to the plot if they are within bounds
                             (r, x)
                             for x in next(sequence, [])
-                            if self.config.r_bounds[0] <= r <= self.config.r_bounds[1]
+                            if self.config.parameter_bounds[0]
+                            <= r
+                            <= self.config.parameter_bounds[1]
                             and self.config.x_bounds[0] <= x <= self.config.x_bounds[1]
                         ]
             total_points_found += len(plot_pairs)
