@@ -119,7 +119,7 @@ def main() -> None:
 
     print("Plotting the bifurcation diagram of a novel map...")
 
-    B_default = 5.821
+    b_default = 5.821
     w1_default = 1.487
     w2_default = 0.2223
 
@@ -127,7 +127,7 @@ def main() -> None:
     def my_map_function(
         x: list[float],
         A: float,
-        B: float = B_default,
+        B: float = b_default,
         w1: float = w1_default,
         w2: float = w2_default,
     ) -> list[float]:
@@ -141,7 +141,7 @@ def main() -> None:
     # noinspection PyPep8Naming
     my_parametrized_map = citsigol.ParametrizedMap(
         parametrized_function=lambda x, A: my_map_function(
-            x, A, B_default, w1_default, w2_default
+            x, A, b_default, w1_default, w2_default
         ),
         parameter_name="A",
         steps_to_skip=2000,
@@ -155,7 +155,7 @@ def main() -> None:
         marker="_", markersize=0.1
     )
     bifurcation_diagram.ax.set_title(
-        f"{B_default}tanh({w1_default}x) - A tanh({w2_default}x)"
+        f"{b_default}tanh({w1_default}x) - A tanh({w2_default}x)"
     )
     bifurcation_diagram.display()
     plt.show()
