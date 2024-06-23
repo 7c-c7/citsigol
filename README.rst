@@ -35,10 +35,14 @@ The citsigol map branches on each iteration, which causes some interesting chall
 
 .. image:: https://lh3.googleusercontent.com/d/1c_1zBR_PDuo6cSnXD_hCKQC7bwSHUI4W
 
-
 Gratuitous high zoom logistic map bifurcation diagram plot...
 
 .. image:: https://lh3.googleusercontent.com/d/1OreqbaS26oc34hXWPTH-tMEofyiiRmx0
+
+Also included are tools to investigate arbitrary maps, such as this one:
+
+.. image:: https://lh3.googleusercontent.com/d/1Fj6e2Uj35NQhh9XxaTBVt9eiB8AtCM47
+
 
 ..
     .. image:: https://img.shields.io/pypi/v/citsigol.svg
