@@ -5,13 +5,13 @@ __email__ = "dustinsummy@gmail.com"
 __version__ = "0.1.0"
 
 import dataclasses
-from typing import Any, Callable, Generator
+import typing
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import LineCollection
 
-import citsigol.bifurcation as bifurcation
+import citsigol.bifurcation as bf
 
 # Dynamically retrieve the parameters of plt.subplots and ax.plot
 PYPLOT_SUBPLOTS_KWARGS = {"figsize", "dpi"}
@@ -25,7 +25,7 @@ PYPLOT_LINE_COLLECTION_KWARGS = {
 
 
 class Map:
-    def __init__(self, function: Callable[[list[float]], list[float]]):
+    def __init__(self, function: typing.Callable[[list[float]], list[float]]):
         def next_value(x: list[float]) -> list[float]:
             return function(x)
 
@@ -36,7 +36,7 @@ class Map:
 
     def sequence(
         self, x_0: list[float], n: int | None = None
-    ) -> Generator[list[float], None, None]:
+    ) -> typing.Generator[list[float], None, None]:
         """
         Iterate the Map at most n times.
 
@@ -140,7 +140,7 @@ class Map:
         x_0: list[float],
         n_steps: int = 100,
         ax: plt.Axes = None,
-        **kwargs: Any,
+        **kwargs: typing.Any,
     ) -> tuple[plt.Figure, plt.Axes]:
         """
         Plot the Map on the given axes, or create a new figure and axes to plot on.
@@ -202,7 +202,7 @@ class Map:
 
 @dataclasses.dataclass
 class ParametrizedMap:
-    parametrized_function: Callable[[list[float], float], list[float]]
+    parametrized_function: typing.Callable[[list[float], float], list[float]]
     parameter_name: str = dataclasses.field(default_factory=lambda: "r")
     initial_values: list[float] | None = None
     steps_to_skip: int = 100
@@ -219,8 +219,10 @@ class ParametrizedMap:
         return self.function(x, *args, **kwargs)
 
     def bifurcation_diagram(
-        self, config: bifurcation.BifurcationDiagramConfig | None = None
-    ) -> bifurcation.BifurcationDiagram:
+        self,
+        config: bf.BifurcationDiagramConfig | None = None,
+        **kwargs: typing.Any,
+    ) -> bf.BifurcationDiagram:
         """
         Create the bifurcation diagram of the Map on the given axes, or create a new figure and axes to plot on.
 
@@ -236,11 +238,11 @@ class ParametrizedMap:
             Axes of the plot.
         """
         config = (
-            bifurcation.BifurcationDiagramConfig(parametrized_map=self)
+            bf.BifurcationDiagramConfig(parametrized_map=self)
             if config is None
             else config
         )
-        return bifurcation.BifurcationDiagram(self, config)
+        return bf.BifurcationDiagram(self, config, **kwargs)
 
     def map_instance(self, *args: float, **kwargs: float) -> Map:
         """
