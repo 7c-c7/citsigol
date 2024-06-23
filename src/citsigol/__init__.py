@@ -219,7 +219,9 @@ class ParametrizedMap:
         return self.function(x, *args, **kwargs)
 
     def bifurcation_diagram(
-        self, config: bf.BifurcationDiagramConfig | None = None
+        self,
+        config: bf.BifurcationDiagramConfig | None = None,
+        **kwargs: typing.Any,
     ) -> bf.BifurcationDiagram:
         """
         Create the bifurcation diagram of the Map on the given axes, or create a new figure and axes to plot on.
@@ -240,7 +242,7 @@ class ParametrizedMap:
             if config is None
             else config
         )
-        return bf.BifurcationDiagram(self, config)
+        return bf.BifurcationDiagram(self, config, **kwargs)
 
     def map_instance(self, *args: float, **kwargs: float) -> Map:
         """

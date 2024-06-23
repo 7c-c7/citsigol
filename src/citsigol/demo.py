@@ -119,32 +119,44 @@ def main() -> None:
 
     print("Plotting the bifurcation diagram of a novel map...")
 
+    B_default = 5.821
+    w1_default = 1.487
+    w2_default = 0.2223
+
+    # noinspection PyPep8Naming
     def my_map_function(
         x: list[float],
-        a: float,
-        b: float = 5.821,
-        w1: float = 1.487,
-        w2: float = 0.2223,
+        A: float,
+        B: float = B_default,
+        w1: float = w1_default,
+        w2: float = w2_default,
     ) -> list[float]:
         """
         See:
         Baghdadi G et al. A chaotic model of sustaining attention problem in attention deficit disorder.
         Commun Nonlinear Sci Numer Simulat (2014), http://dx.doi.org/10.1016/j.cnsns.2014.05.015
         """
-        return [b * math.tanh(w1 * val) - a * math.tanh(w2 * val) for val in x]
+        return [B * math.tanh(w1 * val) - A * math.tanh(w2 * val) for val in x]
 
+    # noinspection PyPep8Naming
     my_parametrized_map = citsigol.ParametrizedMap(
-        parametrized_function=my_map_function,
+        parametrized_function=lambda x, A: my_map_function(
+            x, A, B_default, w1_default, w2_default
+        ),
         parameter_name="A",
-        steps_to_skip=300,
-        initial_values=[0.1, -0.1],
+        steps_to_skip=2000,
+        initial_values=list(np.linspace(-1, 1, 11)),
         n_points=2000,
-        resolution=1000,
-        parameter_bounds=(0, 50),
-        x_bounds=(-4, 4),
+        resolution=2000,
+        parameter_bounds=(0, 35),
+        x_bounds=(-6, 6),
     )
-    bifurcation_diagram = my_parametrized_map.bifurcation_diagram()
-    bifurcation_diagram.ax.set_title("B tanh(w1 x) - A tanh(w2 x)")
+    bifurcation_diagram = my_parametrized_map.bifurcation_diagram(
+        marker="_", markersize=0.1
+    )
+    bifurcation_diagram.ax.set_title(
+        f"{B_default}tanh({w1_default}x) - A tanh({w2_default}x)"
+    )
     bifurcation_diagram.display()
     plt.show()
 
