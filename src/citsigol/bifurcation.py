@@ -14,6 +14,7 @@ FIG_SIZE = (16, 9)
 PLOT_DRAW_PAUSE_TIME = (
     1e-8  # pausing is required when drawing the plot to avoid skipping the drawing.
 )
+CHECKBOX_AXES_BOX = (0.02, 0.9, 0.1, 0.05)
 
 plt.style.use("dark_background")
 
@@ -40,13 +41,13 @@ class BifurcationDiagramConfig:
     parameter_bounds : tuple[float, float]
         the bounds for the r-axis (default is (0, 4))
     resolution : int
-        the resolution of the r-values (default is 1000)
+        the resolution of the parameter values (default is 1000)
     max_steps : int
         the maximum number of steps in each sequence (default is 100_000)
     """
 
     parametrized_map: citsigol.ParametrizedMap | None = None
-    initial_values: list[float] = dataclasses.field(default_factory=lambda: [0.5])
+    initial_values: list[float] = None  # type: ignore
     steps_to_skip: int = None  # type: ignore
     n_points: int = None  # type: ignore
     x_bounds: tuple[float, float] = None  # type: ignore
@@ -77,8 +78,8 @@ class BifurcationDiagram:
         the figure object of the plot
     ax : matplotlib.axes.Axes
         the axes object of the plot
-    r_values : numpy.ndarray
-        the r-values used in the plot
+    parameter_values : numpy.ndarray
+        the parameter values used in the plot
     sequences : list[Iterator]
         the sequences of the map
 
@@ -98,7 +99,7 @@ class BifurcationDiagram:
         self,
         parametrized_map: citsigol.ParametrizedMap,
         config: BifurcationDiagramConfig,
-        **kwargs: typing.Any,
+        figsize: tuple[float, float] = FIG_SIZE,
     ):
         """
         Constructs all the necessary attributes for the BifurcationDiagram object.
@@ -109,26 +110,28 @@ class BifurcationDiagram:
                 a ParametrizedMap that represents the map used in the bifurcation diagram
             config : BifurcationDiagramConfig
                 the configuration for the bifurcation diagram, see BifurcationDiagramConfig for attributes
-            kwargs : dict
-                additional keyword arguments for the plot, mimicking matplotlib.pyplot.subplots kwargs
+            figsize : tuple[float, float]
+                (figwidth, figheight) in inches (default is (16, 9))
         """
-        if "fig_size" not in kwargs:
-            kwargs["fig_size"] = FIG_SIZE
         self.parametrized_map = parametrized_map
         self.config = config
         for field in dataclasses.fields(self.config):
             setattr(self, field.name, getattr(self.config, field.name))
 
         self.total_points_to_plot = self.config.n_points * self.config.resolution
-        self.zoom_box: list[tuple[float, float]] = [(0, 0), (0, 0)]
+        self._reset_bounds()
+        self.zoom_box: list[tuple[float, float]] = [
+            (config.parameter_bounds[0], config.x_bounds[0]),
+            (config.parameter_bounds[1], config.x_bounds[1]),
+        ]
         matplotlib.rcParams["toolbar"] = "None"
-        self.figure, self.ax = plt.subplots(figsize=kwargs["fig_size"])
+        self.figure, self.ax = plt.subplots(figsize=figsize)
         matplotlib.rcParams["toolbar"] = "toolbar2"
         self.ax.set_ylabel("x")
         self.ax.set_xlabel(self.parametrized_map.parameter_name)
-        self.r_values = np.linspace(
-            self.config.parameter_bounds[0],
-            self.config.parameter_bounds[1],
+        self.parameter_values = np.linspace(
+            self.parameter_bounds[0],
+            self.parameter_bounds[1],
             self.config.resolution,
         )
         self.sequences = self.generator_sequences()
@@ -143,9 +146,46 @@ class BifurcationDiagram:
         )
         self._proceed = True
 
+        instructions = (
+            "Diagram Controls:\n"
+            "- Press SPACE to stop calculating the diagram.\n"
+            "- Press R to reset the diagram bounds.\n"
+            "- Click and drag to zoom in on a region.\n"
+            "- Press H to toggle this help message."
+        )
+        self.help_text = self.figure.text(0.01, 0.01, instructions, fontsize=10)
+        self.figure.canvas.mpl_connect("key_press_event", self._key_press_handler)
+
+    def _key_press_handler(self, event: matplotlib.backend_bases.KeyEvent) -> None:
+        """
+        Called whenever the checkbox is clicked and handles toggling the continued calculation
+        of the plot.
+        """
+        if event.key == " ":
+            self._proceed = False
+            self.progress_text.set_text("")
+            self.progress_text.set_visible(False)
+            self.draw()
+        elif event.key == "r":
+            self._reset_bounds()
+            self.restart()
+        elif event.key == "h":
+            self.help_text.set_visible(not self.help_text.get_visible())
+            self.draw()
+
+    def _reset_bounds(self) -> None:
+        """
+        Reset the bounds of the axes to the original bounds.
+        """
+        self._proceed = False
+        self.zoom_box = [
+            (self.config.parameter_bounds[0], self.config.x_bounds[0]),
+            (self.config.parameter_bounds[1], self.config.x_bounds[1]),
+        ]
+
     def generator_sequences(self) -> list[typing.Iterator[list[float]]]:
         """
-        Generate sequence generator functions of the map for each of self.r_values.
+        Generate sequence generator functions of the map for each of self.parameter_values.
 
         Returns
         -------
@@ -154,7 +194,7 @@ class BifurcationDiagram:
         """
         return [
             self.parametrized_map.map_instance(r).sequence(self.config.initial_values)
-            for r in self.r_values
+            for r in self.parameter_values
         ]
 
     def _begin_zoom_box(self, event: matplotlib.backend_bases.MouseEvent) -> None:
@@ -180,32 +220,34 @@ class BifurcationDiagram:
         """
         self._proceed = True
         self.zoom_box[1] = (event.xdata, event.ydata)
-        self.restart()
+        if self.zoom_box[0] != self.zoom_box[1]:
+            self.restart()
 
     def restart(self) -> None:
         """
         Restart the bifurcation diagram. In case of change of bounds, for example.
         """
-        self._update_bounds()
+        self._update_axes_bounds()
         self._clear_points()
-        self.r_values = np.linspace(
-            self.config.parameter_bounds[0],
-            self.config.parameter_bounds[1],
+        self.parameter_values = np.linspace(
+            self.parameter_bounds[0],
+            self.parameter_bounds[1],
             self.config.resolution,
         )
         self.sequences = self.generator_sequences()
+        self._proceed = True
         self.populate()
 
-    def _update_bounds(self) -> None:
+    def _update_axes_bounds(self) -> None:
         """
         Update the bounds of the axes based on the zoom box.
         """
         x0, y0 = self.zoom_box[0]
         x1, y1 = self.zoom_box[1]
-        self.config.parameter_bounds = (min(x0, x1), max(x0, x1))
-        self.config.x_bounds = (min(y0, y1), max(y0, y1))
-        self.ax.set_xlim(self.config.parameter_bounds)
-        self.ax.set_ylim(self.config.x_bounds)
+        self.parameter_bounds = (min(x0, x1), max(x0, x1))
+        self.x_bounds = (min(y0, y1), max(y0, y1))
+        self.ax.set_xlim(self.parameter_bounds)
+        self.ax.set_ylim(self.x_bounds)
 
     def _clear_points(self) -> None:
         """
@@ -231,10 +273,21 @@ class BifurcationDiagram:
 
     def reset_axes_limits(self) -> None:
         """
-        Set axes limits to match bifurcation diagram bounds.
+        Set axes limits to match x and parameter bounds.
         """
-        self.ax.set_ylim(self.config.x_bounds)
-        self.ax.set_xlim(self.config.parameter_bounds)
+        self.ax.set_ylim(self.x_bounds)
+        self.ax.set_xlim(self.parameter_bounds)
+
+    def _figure_is_open(self) -> bool:
+        """
+        Check if the figure is still open.
+
+        Returns
+        -------
+        bool
+            True if the figure is still open, False otherwise.
+        """
+        return bool(plt.fignum_exists(self.figure.number))
 
     def _skip_initial_data(self) -> None:
         """
@@ -244,7 +297,11 @@ class BifurcationDiagram:
         self.progress_text.set_text("Skipping initial data...")
         self.draw()
         points_found = np.full(self.config.resolution, 0)
-        while self._proceed and np.all(points_found < self.config.steps_to_skip):
+        while (
+            self._figure_is_open()
+            and self._proceed
+            and np.all(points_found < self.config.steps_to_skip)
+        ):
             points_found = np.add(
                 points_found,
                 [
@@ -255,9 +312,7 @@ class BifurcationDiagram:
                                 True
                                 for _ in range(self.config.steps_to_skip)
                                 for x in next(sequence, [])
-                                if self.config.x_bounds[0]
-                                <= x
-                                <= self.config.x_bounds[1]
+                                if self.x_bounds[0] <= x <= self.x_bounds[1]
                             ]
                         )
                         if points_found_this_sequence < self.config.steps_to_skip
@@ -280,22 +335,25 @@ class BifurcationDiagram:
         points_found = np.full(self.config.resolution, 0)
         total_points_found = 0
         chunk_size = 1 / 20
-        while self._proceed and total_points_found < self.total_points_to_plot:
+        while (
+            self._figure_is_open()
+            and self._proceed
+            and total_points_found < self.total_points_to_plot
+        ):
             while (
-                self._proceed
+                self._figure_is_open()
+                and self._proceed
                 and len(plot_pairs) / self.total_points_to_plot <= chunk_size
             ):
                 for r, sequence, points_found_this_sequence in zip(
-                    self.r_values, self.sequences, points_found
+                    self.parameter_values, self.sequences, points_found
                 ):
                     if points_found_this_sequence < self.config.steps_to_skip:
                         plot_pairs += [  # add points to the plot if they are within bounds
                             (r, x)
                             for x in next(sequence, [])
-                            if self.config.parameter_bounds[0]
-                            <= r
-                            <= self.config.parameter_bounds[1]
-                            and self.config.x_bounds[0] <= x <= self.config.x_bounds[1]
+                            if self.parameter_bounds[0] <= r <= self.parameter_bounds[1]
+                            and self.x_bounds[0] <= x <= self.x_bounds[1]
                         ]
             total_points_found += len(plot_pairs)
             rs, xes = zip(*plot_pairs)
