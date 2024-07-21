@@ -84,7 +84,7 @@ Setup should be quite standard. The following should be sufficient to get starte
     pip install -r requirements_dev.txt
     pip install -e .
 
-You can test the package by running `pytest` in the root directory.
+You can test the package by running `pytest` in the root directory.  `demo.py` gives examples of how to use all the main features.
 
 This package was built with Python 3.12 and later in mind, It may work with earlier versions but this is not guaranteed.
 
