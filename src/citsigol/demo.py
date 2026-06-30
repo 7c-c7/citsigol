@@ -18,7 +18,7 @@ def main() -> None:
     )
     fig, axs = plt.subplots(2, 1, figsize=(16, 9))
     logistic_map = logistic.logistic_map.map_instance(3.8)
-    x_0 = list(np.linspace(0.5 - 1e-6, 0.5 + 1e-6, 1000))
+    x_0 = np.linspace(0.5 - 1e-6, 0.5 + 1e-6, 1000)
     n_steps = 100
     logistic_map.plot(
         x_0,
@@ -33,14 +33,13 @@ def main() -> None:
     axs[0].set_title("logistic_map(x, r=3.8)")
 
     citsigol_map = citsigol.citsigol_map.map_instance(3.8)
-    x_0 = [0.5]
+    x_0 = np.array([0.5])
     n_steps = 15
     citsigol_map.plot(
         x_0,
         n_steps,
         label="r=3.8",
         figsize=(16, 9),
-        fig=fig,
         ax=axs[1],
         linestyles="solid",
         linewidths=0.2,
@@ -100,7 +99,7 @@ def main() -> None:
             for x in values
         ]
     )  # The function must take a list of floats and return a list of floats.
-    x_0 = list(np.linspace(0.3 - 1e-2, 0.3 + 1e-2, 1000))
+    x_0 = np.linspace(0.3 - 1e-2, 0.3 + 1e-2, 1000)
     n_steps = 100
     fig, ax = my_map.plot(
         x_0,

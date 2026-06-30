@@ -81,8 +81,7 @@ Setup should be quite standard. The following should be sufficient to get starte
     cd citsigol
     python -m venv venv
     source venv/bin/activate
-    pip install -r requirements_dev.txt
-    pip install -e .
+    pip install -e .[dev]
 
 You can test the package by running `pytest` in the root directory.  `demo.py` gives examples of how to use all the main features.
 

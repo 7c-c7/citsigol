@@ -107,7 +107,7 @@ class BifurcationDiagram:
         parametrized_map: citsigol.ParametrizedMap,
         config: BifurcationDiagramConfig,
         figsize: tuple[float, float] = FIG_SIZE,
-        **plot_kwargs: typing.Union[float, str],
+        **plot_kwargs: float | str,
     ):
         """
         Constructs all the necessary attributes for the BifurcationDiagram object.
@@ -125,14 +125,14 @@ class BifurcationDiagram:
         """
         self.parametrized_map = parametrized_map
         self.config = config
-        self.plot_kwargs = DEFAULT_PLOT_KWARGS.copy()
+        self.plot_kwargs: dict[str, typing.Any] = DEFAULT_PLOT_KWARGS.copy()
         self.plot_kwargs.update(plot_kwargs)
         for field in dataclasses.fields(self.config):
             setattr(self, field.name, getattr(self.config, field.name))
 
         self.total_points_to_plot = self.config.n_points * self.config.resolution
         self._reset_bounds()
-        self.zoom_box: list[tuple[float, float]] = [
+        self.zoom_box: list[tuple[float | None, float | None]] = [
             (config.parameter_bounds[0], config.x_bounds[0]),
             (config.parameter_bounds[1], config.x_bounds[1]),
         ]
@@ -158,12 +158,7 @@ class BifurcationDiagram:
         self._proceed = True
 
         instructions = (
-            "Controls:\n"
-            "MOUSE-Zoom\n"
-            "SPACE-Stop\n"
-            "R-Reset\n"
-            "A/Z-(+/-) Alpha\n"
-            "H-Toggle Help"
+            "Controls:\nMOUSE-Zoom\nSPACE-Stop\nR-Reset\nA/Z-(+/-) Alpha\nH-Toggle Help"
         )
         self.help_text = self.figure.text(0.01, 0.01, instructions, fontsize=10)
         self.figure.canvas.mpl_connect("key_press_event", self._key_press_handler)
@@ -185,7 +180,7 @@ class BifurcationDiagram:
             self.help_text.set_visible(not self.help_text.get_visible())
             self.draw()
         elif event.key in ["a", "z"]:
-            current_alpha: float = self.plot_kwargs["alpha"]  # type: ignore
+            current_alpha: float = self.plot_kwargs["alpha"]
             delta_alpha = current_alpha / 5 if event.key == "a" else -current_alpha / 4
             self.plot_kwargs["alpha"] = max(0.0, min(1.0, current_alpha + delta_alpha))
             self._update_alpha()
@@ -272,6 +267,8 @@ class BifurcationDiagram:
         """
         x0, y0 = self.zoom_box[0]
         x1, y1 = self.zoom_box[1]
+        if x0 is None or y0 is None or x1 is None or y1 is None:
+            return
         self.parameter_bounds = (min(x0, x1), max(x0, x1))
         self.x_bounds = (min(y0, y1), max(y0, y1))
         self.ax.set_xlim(self.parameter_bounds)
