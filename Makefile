@@ -1,4 +1,4 @@
-.PHONY: clean clean-build clean-pyc clean-test coverage dist docs help install lint lint/flake8
+.PHONY: clean clean-build clean-pyc clean-test coverage dist docs help install lint type test test-all
 
 .DEFAULT_GOAL := help
 
@@ -48,11 +48,12 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr htmlcov/
 	rm -fr .pytest_cache
 
-lint/flake8: ## check style with flake8
-	flake8 citsigol tests
+lint: ## check style with ruff
+	ruff check .
+	ruff format --check .
 
-
-lint: lint/flake8 ## check style
+type: ## static type-check with mypy
+	mypy .
 
 test: ## run tests quickly with the default Python
 	pytest
@@ -69,7 +70,7 @@ coverage: ## check code coverage quickly with the default Python
 docs: ## generate Sphinx HTML documentation, including API docs
 	rm -f docs/citsigol.rst
 	rm -f docs/modules.rst
-	sphinx-apidoc -o docs/ citsigol
+	sphinx-apidoc -o docs/ src/citsigol
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
 	$(BROWSER) docs/_build/html/index.html
@@ -81,9 +82,8 @@ release: dist ## package and upload a release
 	twine upload dist/*
 
 dist: clean ## builds source and wheel package
-	python setup.py sdist
-	python setup.py bdist_wheel
+	python -m build
 	ls -l dist
 
 install: clean ## install the package to the active Python's site-packages
-	python setup.py install
+	pip install .

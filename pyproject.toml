@@ -13,8 +13,18 @@ authors = [
 maintainers = [
   {name = "Dustin Phillip Summy", email = "dustinsummy@gmail.com"}
 ]
+requires-python = ">=3.10"
 classifiers = [
-
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Mathematics",
 ]
 license = {text = "MIT license"}
 dependencies = [
@@ -24,16 +34,21 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "coverage",  # testing
-    "mypy",  # linting
-    "pytest",  # testing
-    "ruff"  # linting
+    "coverage",   # test coverage
+    "mypy",       # static type checking
+    "pytest",     # test runner
+    "ruff",       # lint + format
+    "pre-commit", # git hooks
+    "tox",        # multi-version test runner
+    "sphinx",     # docs
+    "twine",      # release upload
+    "build",      # PEP 517 build frontend
 ]
 
 [project.urls]
 
 bugs = "https://github.com/7c-c7/citsigol/issues"
-changelog = "https://github.com/7c-c7/citsigol/blob/master/changelog.md"
+changelog = "https://github.com/7c-c7/citsigol/blob/official/HISTORY.rst"
 homepage = "https://github.com/7c-c7/citsigol"
 
 [tool.setuptools]
@@ -50,6 +65,7 @@ package-dir = {"" = "src"}
 
 [tool.mypy]
 files = "."
+exclude = ['^build/', '^dist/', '^\.venv/']
 
 # Use strict defaults
 strict = true
@@ -60,6 +76,3 @@ warn_no_return = true
 # Don't require test functions to include types
 module = "tests.*"
 allow_untyped_defs = true
-
-[tool.flake8]
-max-line-length = 120

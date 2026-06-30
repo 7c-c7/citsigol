@@ -2,14 +2,17 @@
 
 __author__ = """Dustin Phillip Summy"""
 __email__ = "dustinsummy@gmail.com"
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 import dataclasses
 import typing
+from collections.abc import Iterable
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.axes import Axes
 from matplotlib.collections import LineCollection
+from matplotlib.figure import Figure
 
 import citsigol.bifurcation as bf
 
@@ -73,7 +76,7 @@ class Map:
         max_steps: int = 1_000,
         skip_steps: int = 0,
         return_unconverged: bool = False,
-    ) -> np.ndarray | None:
+    ) -> np.ndarray:
         """
         Iterate the Map until convergence.
 
@@ -105,7 +108,7 @@ class Map:
 
         Returns
         -------
-        np.ndarray | None
+        np.ndarray
             If the method finds a convergent value, it returns this value.
             If the method stops without finding a convergent value and `return_unconverged` is True,
                 it returns the `x` history.
@@ -118,30 +121,29 @@ class Map:
             for i, x in enumerate(self.sequence([x_0], skip_steps), 1)
             if i == skip_steps
         )
-        x_history = [x_new]
+        x_history: list[list[float]] = [x_new]
         for _ in range(max_steps - skip_steps):
             x_new = self(x_new)
             if np.any(
                 indices := np.where(np.isclose(x_history, x_new, atol=tol, rtol=0))[0]
             ):
-                period_length = len(x_history) - np.max(indices)
+                period_length = len(x_history) - int(np.max(indices))
                 return np.array(x_history[-period_length:])
             if len(x_history) >= max_period:
-                x_history = np.roll(x_history, -1)
-                x_history[-1] = x_new
+                x_history = x_history[1:] + [x_new]
             else:
                 x_history.append(x_new)
         if return_unconverged:
-            return x_history
+            return np.array(x_history)
         return np.array([])
 
     def plot(
         self,
-        x_0: list[float],
+        x_0: Iterable[float],
         n_steps: int = 100,
-        ax: plt.Axes = None,
+        ax: Axes | None = None,
         **kwargs: typing.Any,
-    ) -> tuple[plt.Figure, plt.Axes]:
+    ) -> tuple[Figure, Axes]:
         """
         Plot the Map on the given axes, or create a new figure and axes to plot on.
 
@@ -152,8 +154,8 @@ class Map:
 
         Parameters
         ----------
-        x_0 : list[float]
-            Initial value(s).
+        x_0 : Iterable[float]
+            Initial value(s). Any iterable of floats (e.g. a list, tuple, or NumPy array).
         n_steps : int, optional
             Number of iterations to plot, by default 100.
         ax : plt.Axes, optional
@@ -175,8 +177,7 @@ class Map:
         plot_kwargs = {
             k: v for k, v in kwargs.items() if k in PYPLOT_LINE_COLLECTION_KWARGS
         }
-        if "label" not in plot_kwargs:
-            plot_kwargs["label"] = self.__repr__()
+        plot_kwargs["label"] = kwargs.get("label", repr(self))
 
         if ax is None:
             fig, ax = plt.subplots(**subplots_kwargs)
@@ -184,7 +185,7 @@ class Map:
             fig = ax.figure
 
         lines: list[tuple[tuple[int, float], tuple[int, float]]] = []
-        x_vals = x_0.copy()
+        x_vals = list(x_0)
         for i in range(n_steps):
             next_x = []
             for x_i in x_vals:
@@ -193,7 +194,6 @@ class Map:
             x_vals = next_x.copy()
 
         line_collection = LineCollection(lines, **plot_kwargs)
-        line_collection.set_label(kwargs["label"])
         ax.add_collection(line_collection)
         ax.autoscale()
         fig.canvas.draw()
